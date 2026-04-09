@@ -18,7 +18,7 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
                     mimeType === 'audio/mp4' ? 'mp4' :
                     mimeType === 'audio/wav' ? 'wav' : 'webm';
 
-  const file = new File([audioBuffer], `audio.${extension}`, { type: mimeType });
+  const file = new File([new Uint8Array(audioBuffer)], `audio.${extension}`, { type: mimeType });
 
   const transcription = await openai.audio.transcriptions.create({
     file,
