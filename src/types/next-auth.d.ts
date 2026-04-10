@@ -7,12 +7,15 @@ declare module 'next-auth' {
       role: string;
       twoFactorEnabled: boolean;
       twoFactorVerified: boolean;
+      unlimitedTokens: boolean;
     } & DefaultSession['user'];
   }
 
   interface User {
     role: string;
     twoFactorEnabled: boolean;
+    twoFactorVerified?: boolean;
+    unlimitedTokens?: boolean;
   }
 }
 
@@ -22,5 +25,6 @@ declare module 'next-auth/jwt' {
     role: string;
     twoFactorEnabled: boolean;
     twoFactorVerified: boolean;
+    unlimitedTokens: boolean;
   }
 }
