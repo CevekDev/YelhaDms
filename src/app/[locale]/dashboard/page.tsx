@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 import { Plug, MessageSquare, Coins, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
@@ -9,6 +10,12 @@ const ORANGE = '#FF6B2C';
 
 export default async function DashboardPage({ params: { locale } }: { params: { locale: string } }) {
   const session = await getServerSession(authOptions);
+
+  // Admin → redirect directly to admin panel
+  if (session?.user.role === 'ADMIN') {
+    redirect(`/${locale}/admin`);
+  }
+
   const t = await getTranslations('dashboard');
 
   const [user, connections, todayMessages, totalMessages] = await Promise.all([

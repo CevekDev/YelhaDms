@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { DashboardShell } from '@/components/dashboard/dashboard-shell';
+import { AdminShell } from '@/components/admin/admin-shell';
 
 export default async function AdminLayout({
   children,
@@ -15,5 +15,5 @@ export default async function AdminLayout({
     redirect(`/${locale}/dashboard`);
   }
 
-  return <DashboardShell>{children}</DashboardShell>;
+  return <AdminShell>{children}</AdminShell>;
 }

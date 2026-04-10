@@ -221,6 +221,7 @@ model TokenTransaction {
   amount               Int
   balance              Int
   description          String?
+  pricePaid            Float?               // montant payé en DZD
   chargilyCheckoutId   String?              // replaces stripePaymentIntentId
   createdAt            DateTime             @default(now())
 

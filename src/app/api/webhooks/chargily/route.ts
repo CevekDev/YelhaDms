@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
           amount: tokenAmount,
           balance: user.tokenBalance,
           description: `Achat de ${tokenAmount} tokens via Chargily — ${amountDZD} DZD`,
+          pricePaid: amountDZD,
           chargilyCheckoutId: checkout.id,
         },
       });
