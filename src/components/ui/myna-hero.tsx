@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { Menu, X, Bot, Send, Zap, Globe, Mic, Shield } from 'lucide-react';
+import { Menu, Bot, Send, Globe, Mic } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { LanguageSwitcher } from '@/components/language-switcher';
 
@@ -175,18 +175,6 @@ export function MynaHero({ locale }: MynaHeroProps) {
         />
 
         {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-8"
-        >
-          <Zap className="w-3.5 h-3.5" style={{ color: ORANGE }} />
-          <span className="font-mono text-xs text-white/60">
-            Propulsé par DeepSeek AI · Whisper · Telegram
-          </span>
-        </motion.div>
-
         {/* Title — word by word */}
         <h1 className="font-mono text-5xl md:text-7xl font-bold text-center leading-[1.1] mb-6">
           {titleWords.map((word, i) => (
