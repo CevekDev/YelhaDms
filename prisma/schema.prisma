@@ -18,6 +18,23 @@ enum Platform {
   TELEGRAM
 }
 
+enum PlanLevel {
+  FREE
+  STARTER
+  BUSINESS
+  PRO
+  AGENCY
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
 enum TokenTransactionType {
   PURCHASE
   USAGE
@@ -47,6 +64,7 @@ model User {
   twoFactorCodeExpiry   DateTime?
   unlimitedTokens       Boolean   @default(false)
   trialUsed             Boolean   @default(false)
+  planLevel             PlanLevel @default(FREE)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -58,6 +76,8 @@ model User {
   passwordResetTokens   PasswordResetToken[]
   auditLogs             AuditLog[]
   promoCodeUses         PromoCodeUse[]
+  products              Product[]
+  orders                Order[]
 }
 
 model Account {
@@ -160,6 +180,8 @@ model Connection {
   predefinedMessages   PredefinedMessage[]
   conversations        Conversation[]
   botCommands          BotCommand[]
+  orders               Order[]
+  detailResponses      BotDetailResponse[]
 }
 
 model PredefinedMessage {
@@ -294,4 +316,66 @@ model WaitlistEmail {
   email     String   @unique
   platform  String   // "instagram" | "facebook"
   createdAt DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  brand       String?
+  price       Float
+  description String?  @db.Text
+  stock       Int?
+  isActive    Boolean  @default(true)
+  imageUrl    String?
+  source      String   @default("manual") // "manual" | "woocommerce" | "shopify"
+  externalId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  userId       String
+  connectionId String
+  contactName  String?
+  contactId    String?
+  contactPhone String?
+  status       OrderStatus @default(PENDING)
+  totalAmount  Float?
+  notes        String?     @db.Text
+  trackingCode String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String?
+  name      String
+  price     Float
+  quantity  Int      @default(1)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model BotDetailResponse {
+  id           String   @id @default(cuid())
+  connectionId String
+  questionType String
+  response     String   @db.Text
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  connection Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 }

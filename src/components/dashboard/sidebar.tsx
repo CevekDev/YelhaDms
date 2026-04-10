@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Plug, Coins, Settings, LogOut,
   Shield, BarChart3, Bot, Users, ChevronRight,
+  MessageSquare, Package, ShoppingCart, Truck, Settings2,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 
@@ -19,8 +20,16 @@ export function Sidebar() {
   const locale = params.locale as string;
   const { data: session } = useSession();
 
-  const navItems = [
-    { href: `/${locale}/dashboard`, label: t('overview'), icon: LayoutDashboard },
+  const mainNavItems = [
+    { href: `/${locale}/dashboard`, label: 'Vue d\'ensemble', icon: LayoutDashboard, exact: true },
+    { href: `/${locale}/dashboard/conversations`, label: 'Conversations', icon: MessageSquare },
+    { href: `/${locale}/dashboard/bot-settings`, label: 'Réglage du bot', icon: Settings2 },
+    { href: `/${locale}/dashboard/products`, label: 'Produits', icon: Package },
+    { href: `/${locale}/dashboard/orders`, label: 'Commandes', icon: ShoppingCart },
+    { href: `/${locale}/dashboard/delivery`, label: 'Livraison', icon: Truck, soon: true },
+  ];
+
+  const secondaryNavItems = [
     { href: `/${locale}/dashboard/connections`, label: t('connections'), icon: Plug },
     { href: `/${locale}/dashboard/tokens`, label: t('tokens'), icon: Coins },
     { href: `/${locale}/dashboard/analytics`, label: t('analytics'), icon: BarChart3 },
@@ -28,9 +37,49 @@ export function Sidebar() {
   ];
 
   if (session?.user.role === 'ADMIN') {
-    navItems.push({ href: `/${locale}/admin`, label: 'Admin', icon: Shield });
-    navItems.push({ href: `/${locale}/admin/waitlist`, label: "Liste d'attente", icon: Users });
+    secondaryNavItems.push({ href: `/${locale}/admin`, label: 'Admin', icon: Shield } as any);
   }
+
+  const renderNavItem = (item: {
+    href: string;
+    label: string;
+    icon: any;
+    exact?: boolean;
+    soon?: boolean;
+  }) => {
+    const Icon = item.icon;
+    const isActive = item.exact
+      ? pathname === item.href
+      : pathname === item.href || pathname.startsWith(item.href + '/');
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={cn(
+          'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all group',
+          isActive
+            ? 'text-white'
+            : 'text-white/40 hover:text-white/80 hover:bg-white/[0.04]'
+        )}
+        style={isActive ? { background: `${ORANGE}20`, color: ORANGE } : {}}
+      >
+        <Icon
+          className="w-4 h-4 flex-shrink-0"
+          style={isActive ? { color: ORANGE } : {}}
+        />
+        <span className="flex-1">{item.label}</span>
+        {item.soon && (
+          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/30 border border-white/10 leading-none">
+            BIENTÔT
+          </span>
+        )}
+        {isActive && !item.soon && (
+          <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0" style={{ color: ORANGE }} />
+        )}
+      </Link>
+    );
+  };
 
   return (
     <div className="flex h-full w-64 flex-col bg-[#0D0D10] border-r border-white/[0.06]">
@@ -49,34 +98,18 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href ||
-            (item.href !== `/${locale}/dashboard` && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all group',
-                isActive
-                  ? 'text-white'
-                  : 'text-white/40 hover:text-white/80 hover:bg-white/[0.04]'
-              )}
-              style={isActive ? { background: `${ORANGE}20`, color: ORANGE } : {}}
-            >
-              <Icon
-                className="w-4 h-4 flex-shrink-0"
-                style={isActive ? { color: ORANGE } : {}}
-              />
-              <span className="flex-1">{item.label}</span>
-              {isActive && (
-                <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0" style={{ color: ORANGE }} />
-              )}
-            </Link>
-          );
-        })}
+        {/* Main sections */}
+        <div className="space-y-0.5">
+          {mainNavItems.map(renderNavItem)}
+        </div>
+
+        {/* Separator */}
+        <div className="my-3 border-t border-white/[0.06]" />
+
+        {/* Secondary sections */}
+        <div className="space-y-0.5">
+          {secondaryNavItems.map(renderNavItem)}
+        </div>
       </nav>
 
       {/* User + signout */}
