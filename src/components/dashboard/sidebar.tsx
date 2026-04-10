@@ -35,10 +35,10 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col bg-[#0D0D10] border-r border-white/[0.06]">
       {/* Logo */}
-      <div className="flex h-16 items-center px-5 border-b border-white/[0.06]">
+      <div className="flex h-14 lg:h-16 items-center px-5 border-b border-white/[0.06] flex-shrink-0">
         <Link href={`/${locale}`} className="flex items-center gap-2.5">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: ORANGE }}
           >
             <Bot className="w-5 h-5 text-white" />
@@ -48,7 +48,7 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-0.5">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -67,12 +67,12 @@ export function Sidebar() {
               style={isActive ? { background: `${ORANGE}20`, color: ORANGE } : {}}
             >
               <Icon
-                className="w-4.5 h-4.5 flex-shrink-0"
+                className="w-4 h-4 flex-shrink-0"
                 style={isActive ? { color: ORANGE } : {}}
               />
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
               {isActive && (
-                <ChevronRight className="w-3.5 h-3.5 ml-auto" style={{ color: ORANGE }} />
+                <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0" style={{ color: ORANGE }} />
               )}
             </Link>
           );
@@ -80,7 +80,7 @@ export function Sidebar() {
       </nav>
 
       {/* User + signout */}
-      <div className="p-3 border-t border-white/[0.06]">
+      <div className="p-3 border-t border-white/[0.06] flex-shrink-0">
         <div className="px-3 mb-2">
           <p className="text-sm font-medium text-white/80 truncate">
             {session?.user.name || 'Utilisateur'}
@@ -91,7 +91,7 @@ export function Sidebar() {
           onClick={() => signOut({ callbackUrl: `/${locale}/auth/signin` })}
           className="flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-sm text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-all"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 flex-shrink-0" />
           {tNav('signOut')}
         </button>
       </div>

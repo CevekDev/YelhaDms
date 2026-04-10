@@ -117,14 +117,14 @@ export default function AdminTokensPanel({ users }: { users: User[] }) {
                 — Solde actuel : {selected?.unlimitedTokens ? '∞' : selected?.tokenBalance} tokens
               </span>
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="number"
                 placeholder="Nb de tokens"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 min={1}
-                className="w-36 bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2 text-sm font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-[#FF6B2C]/40 transition-colors"
+                className="sm:w-36 bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2 text-sm font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-[#FF6B2C]/40 transition-colors"
               />
               <input
                 placeholder="Description (optionnel)"

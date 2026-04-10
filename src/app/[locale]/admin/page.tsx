@@ -49,7 +49,7 @@ export default async function AdminPage({ params: { locale } }: { params: { loca
   ];
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-6 lg:space-y-8 max-w-6xl">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold font-mono text-white">
@@ -59,7 +59,7 @@ export default async function AdminPage({ params: { locale } }: { params: { loca
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           const accent = STAT_ACCENTS[i];

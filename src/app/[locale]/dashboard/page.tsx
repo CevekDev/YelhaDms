@@ -70,7 +70,7 @@ export default async function DashboardPage({ params: { locale } }: { params: { 
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -88,7 +88,7 @@ export default async function DashboardPage({ params: { locale } }: { params: { 
                 </div>
               </div>
               <div>
-                <p className="text-3xl font-bold font-mono text-white">{stat.value}</p>
+                <p className="text-2xl lg:text-3xl font-bold font-mono text-white">{stat.value}</p>
                 <p className="text-xs text-white/30 mt-0.5">{stat.sub}</p>
               </div>
             </div>
@@ -126,7 +126,7 @@ export default async function DashboardPage({ params: { locale } }: { params: { 
       {/* Quick actions */}
       <div>
         <h2 className="text-sm font-mono text-white/40 uppercase tracking-wider mb-4">Actions rapides</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { label: 'Acheter des tokens', href: `/${locale}/dashboard/tokens`, desc: 'Recharger votre solde' },
             { label: 'Gérer les connexions', href: `/${locale}/dashboard/connections`, desc: 'Plateformes & bots' },

@@ -86,7 +86,7 @@ export default function TokensPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-6 lg:space-y-8 max-w-5xl">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold font-mono text-white">Tokens</h1>
@@ -106,7 +106,7 @@ export default function TokensPage() {
         </div>
         <div>
           <p className="text-white/50 text-sm font-mono">{t('balance')}</p>
-          <p className="text-5xl font-bold font-mono text-white mt-0.5">
+          <p className="text-4xl lg:text-5xl font-bold font-mono text-white mt-0.5">
             {unlimited ? '∞' : balance.toLocaleString()}
           </p>
           <p className="text-white/30 text-xs mt-1">{unlimited ? 'Tokens illimités' : 'tokens disponibles'}</p>
@@ -158,7 +158,7 @@ export default function TokensPage() {
             <p className="text-white/30 font-mono text-sm">Aucun forfait disponible pour le moment.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {packages.map((pkg: any) => (
               <div
                 key={pkg.id}
