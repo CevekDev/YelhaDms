@@ -48,7 +48,15 @@ export default function SignInPage() {
         password: data.password,
         redirect: false,
       });
+
       if (result?.error) {
+        // 2FA required — redirect to verify-2fa page
+        if (result.error.startsWith('2FA_REQUIRED:')) {
+          const email = result.error.split('2FA_REQUIRED:')[1];
+          router.push(`/${locale}/auth/verify-2fa?email=${encodeURIComponent(email)}`);
+          return;
+        }
+
         const errorMap: Record<string, string> = {
           EMAIL_NOT_VERIFIED: t('errors.emailNotVerified'),
           ACCOUNT_LOCKED: t('errors.accountLocked'),
