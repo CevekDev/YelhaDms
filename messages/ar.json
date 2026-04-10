@@ -18,25 +18,35 @@
     "forgotPassword": "نسيت كلمة المرور؟",
     "rememberMe": "تذكرني",
     "continueWithGoogle": "المتابعة مع Google",
-    "continueWithApple": "المتابعة مع Apple",
-    "acceptTerms": "أوافق على شروط الخدمة وسياسة الخصوصية",
+    "acceptTerms": "أوافق على شروط الاستخدام وسياسة الخصوصية",
     "alreadyHaveAccount": "لديك حساب بالفعل؟",
     "noAccount": "ليس لديك حساب؟",
     "verifyEmail": "تحقق من بريدك الإلكتروني",
-    "verifyEmailDesc": "أرسلنا بريدًا إلكترونيًا للتحقق إلى عنوانك. يرجى التحقق من صندوق الوارد.",
-    "resendEmail": "إعادة إرسال البريد الإلكتروني",
+    "verifyEmailDesc": "أرسلنا رابط التحقق. تحقق من صندوق الوارد.",
+    "resendEmail": "إعادة إرسال البريد",
     "resetPassword": "إعادة تعيين كلمة المرور",
-    "newPassword": "كلمة المرور الجديدة",
+    "newPassword": "كلمة مرور جديدة",
     "passwordStrength": {
       "weak": "ضعيف",
       "medium": "متوسط",
       "strong": "قوي"
     },
+    "twoFactor": {
+      "title": "التحقق بخطوتين",
+      "desc": "أرسلنا رمزاً مكوناً من 6 أرقام. أدخله أدناه.",
+      "placeholder": "000000",
+      "verify": "تحقق",
+      "resend": "إعادة إرسال الرمز",
+      "resendIn": "إعادة الإرسال خلال",
+      "seconds": "ث",
+      "invalid": "الرمز غير صحيح أو منتهي الصلاحية.",
+      "success": "تم التحقق من هويتك!"
+    },
     "errors": {
-      "emailNotVerified": "يرجى التحقق من بريدك الإلكتروني قبل تسجيل الدخول.",
-      "accountLocked": "تم قفل حسابك مؤقتًا. حاول مرة أخرى بعد 30 دقيقة.",
-      "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-      "emailExists": "يوجد حساب بهذا البريد الإلكتروني بالفعل."
+      "emailNotVerified": "يرجى التحقق من بريدك قبل تسجيل الدخول.",
+      "accountLocked": "حسابك موقوف مؤقتاً. حاول بعد 30 دقيقة.",
+      "invalidCredentials": "البريد أو كلمة المرور غير صحيحة.",
+      "emailExists": "يوجد حساب بهذا البريد الإلكتروني."
     }
   },
   "dashboard": {
@@ -45,9 +55,9 @@
     "tokens": "الرصيد",
     "settings": "الإعدادات",
     "messages": "الرسائل",
-    "analytics": "التحليلات",
-    "tokenBalance": "رصيد الرموز",
-    "buyTokens": "شراء رموز",
+    "analytics": "الإحصائيات",
+    "tokenBalance": "رصيد التوكنات",
+    "buyTokens": "شراء توكنات",
     "activeConnections": "الاتصالات النشطة",
     "messagesToday": "رسائل اليوم",
     "totalMessages": "إجمالي الرسائل"
@@ -60,32 +70,41 @@
     "status": "الحالة",
     "active": "نشط",
     "inactive": "غير نشط",
-    "configure": "تكوين",
+    "configure": "إعداد",
     "delete": "حذف",
-    "whatsapp": "واتساب للأعمال",
+    "whatsapp": "WhatsApp بزنس",
     "instagram": "إنستغرام",
     "facebook": "فيسبوك",
-    "telegram": "تيليغرام"
+    "telegram": "تيليغرام",
+    "help": {
+      "title": "كيف تنشئ بوت تيليغرام؟",
+      "step1": "افتح تيليغرام وابحث عن @BotFather",
+      "step2": "أرسل الأمر /newbot واتبع التعليمات",
+      "step3": "انسخ التوكن من BotFather والصقه أعلاه",
+      "step4": "أرسل أي رسالة لبوتك — سيقوم Yelha تلقائياً بالتعرف على معرفك واسمك",
+      "youtubeLabel": "شاهد الفيديو التعليمي",
+      "youtubeUrl": ""
+    }
   },
   "botConfig": {
     "identity": "هوية البوت",
     "botName": "اسم البوت",
-    "businessName": "اسم العمل",
+    "businessName": "اسم الشركة",
     "personality": "الشخصية",
     "formality": "الرسمية",
     "casual": "غير رسمي",
     "formal": "رسمي",
     "friendliness": "الودية",
-    "professional": "مهني",
-    "veryWarm": "دافئ جدًا",
+    "professional": "احترافي",
+    "veryWarm": "ودي جداً",
     "responseLength": "طول الرد",
     "short": "قصير",
     "detailed": "مفصل",
-    "emojiUsage": "استخدام الرموز التعبيرية",
-    "none": "لا شيء",
-    "frequent": "متكرر",
+    "emojiUsage": "استخدام الإيموجي",
+    "none": "لا يوجد",
+    "frequent": "كثير",
     "customInstructions": "تعليمات مخصصة",
-    "predefinedMessages": "الرسائل المحددة مسبقًا",
+    "predefinedMessages": "ردود محددة مسبقاً",
     "welcomeMessage": "رسالة الترحيب",
     "awayMessage": "رسالة الغياب",
     "businessHours": "ساعات العمل"
@@ -94,15 +113,15 @@
     "balance": "الرصيد",
     "purchase": "شراء",
     "history": "السجل",
-    "used": "مستخدمة",
-    "purchased": "مشتراة",
-    "tokens": "رموز"
+    "used": "مستخدم",
+    "purchased": "تم الشراء",
+    "tokens": "توكن"
   },
   "errors": {
-    "generic": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "generic": "حدث خطأ. يرجى المحاولة مجدداً.",
     "unauthorized": "غير مصرح",
     "notFound": "الصفحة غير موجودة",
-    "rateLimited": "طلبات كثيرة جدًا. يرجى الانتظار."
+    "rateLimited": "طلبات كثيرة. يرجى الانتظار."
   },
   "common": {
     "save": "حفظ",
@@ -111,7 +130,7 @@
     "edit": "تعديل",
     "add": "إضافة",
     "loading": "جار التحميل...",
-    "success": "نجح",
+    "success": "نجاح",
     "error": "خطأ",
     "confirm": "تأكيد",
     "back": "رجوع"

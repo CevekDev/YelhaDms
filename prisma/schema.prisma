@@ -43,6 +43,8 @@ model User {
   twoFactorSecret       String?
   twoFactorBackupCodes  String[]
   requiresTwoFactor     Boolean   @default(false)
+  twoFactorCode         String?
+  twoFactorCodeExpiry   DateTime?
   unlimitedTokens       Boolean   @default(false)
   trialUsed             Boolean   @default(false)
   createdAt             DateTime  @default(now())
@@ -135,6 +137,7 @@ model Connection {
   // Telegram
   telegramBotToken     String?   @db.Text  // AES-256-GCM encrypted
   telegramBotUsername  String?
+  telegramChatId       String?   // captured during setup
   telegramWebhookSet   Boolean   @default(false)
 
   // Bot configuration
@@ -258,16 +261,17 @@ model AuditLog {
 }
 
 model PromoCode {
-  id          String    @id @default(cuid())
-  code        String    @unique
-  tokens      Int
-  maxUses     Int       @default(1)
-  usedCount   Int       @default(0)
-  expiresAt   DateTime?
-  isActive    Boolean   @default(true)
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  code            String    @unique
+  tokens          Int       @default(0)   // bonus tokens after purchase (0 = none)
+  discountPercent Float?                  // % off purchase price (null = no discount)
+  maxUses         Int       @default(1)
+  usedCount       Int       @default(0)
+  expiresAt       DateTime?
+  isActive        Boolean   @default(true)
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   uses        PromoCodeUse[]
 }

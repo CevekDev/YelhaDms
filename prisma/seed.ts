@@ -73,10 +73,10 @@ async function main() {
 
   // Create token packages (prices in DZD)
   const packages = [
-    { name: 'Starter',  tokens: 500,   price: 1590,  currency: 'DZD', isActive: true, isFeatured: false },
-    { name: 'Business', tokens: 2000,  price: 3200,  currency: 'DZD', isActive: true, isFeatured: true  },
-    { name: 'Pro',      tokens: 5000,  price: 6000,  currency: 'DZD', isActive: true, isFeatured: false },
-    { name: 'Agency',   tokens: 15000, price: 15000, currency: 'DZD', isActive: true, isFeatured: false },
+    { name: 'Starter',  tokens: 500,   price: 2500,  currency: 'DZD', isActive: true, isFeatured: false },
+    { name: 'Business', tokens: 2000,  price: 5000,  currency: 'DZD', isActive: true, isFeatured: true  },
+    { name: 'Pro',      tokens: 5000,  price: 10000, currency: 'DZD', isActive: true, isFeatured: false },
+    { name: 'Agency',   tokens: 15000, price: 22000, currency: 'DZD', isActive: true, isFeatured: false },
   ];
 
   for (const pkg of packages) {
