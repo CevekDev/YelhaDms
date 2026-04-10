@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff, ArrowRight, Bot } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 const ORANGE = '#FF6B2C';
 
@@ -130,106 +130,108 @@ export function YelhaAuthCard({
   switchLabel,
 }: YelhaAuthCardProps) {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#060818] to-[#0d1023] p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-4xl overflow-hidden rounded-2xl flex bg-[#090b13] text-white shadow-2xl"
-      >
-        {/* Left — animated map */}
-        <div className="hidden md:block w-5/12 relative overflow-hidden border-r border-white/10">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0f1120] to-[#151929]">
-            <DotMap />
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-                className="mb-5"
-              >
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-                  style={{ background: ORANGE, boxShadow: `0 0 32px ${ORANGE}60` }}
+    <LazyMotion features={domAnimation}>
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#060818] to-[#0d1023] p-4">
+        <m.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-4xl overflow-hidden rounded-2xl flex bg-[#090b13] text-white shadow-2xl"
+        >
+          {/* Left — animated map */}
+          <div className="hidden md:block w-5/12 relative overflow-hidden border-r border-white/10">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0f1120] to-[#151929]">
+              <DotMap />
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
+                <m.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                  className="mb-5"
                 >
-                  <Bot className="w-8 h-8 text-white" />
-                </div>
-              </motion.div>
-              <motion.h2
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.65, duration: 0.5 }}
-                className="text-3xl font-bold mb-3 font-mono"
-                style={{ color: ORANGE }}
-              >
-                Yelha
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-                className="text-sm text-center text-white/40 max-w-xs font-mono leading-relaxed"
-              >
-                {tagline}
-              </motion.p>
-
-              {/* feature chips */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1, duration: 0.5 }}
-                className="flex flex-col gap-2 mt-8 w-full"
-              >
-                {['🤖 IA DeepSeek', '🌍 Darija · Arabe · Français', '🔒 Sécurisé AES-256'].map(chip => (
                   <div
-                    key={chip}
-                    className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.07] rounded-lg px-3 py-2"
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                    style={{ background: ORANGE, boxShadow: `0 0 32px ${ORANGE}60` }}
                   >
-                    <span className="font-mono text-xs text-white/60">{chip}</span>
+                    <Bot className="w-8 h-8 text-white" />
                   </div>
-                ))}
-              </motion.div>
+                </m.div>
+                <m.h2
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.65, duration: 0.5 }}
+                  className="text-3xl font-bold mb-3 font-mono"
+                  style={{ color: ORANGE }}
+                >
+                  Yelha
+                </m.h2>
+                <m.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8, duration: 0.5 }}
+                  className="text-sm text-center text-white/40 max-w-xs font-mono leading-relaxed"
+                >
+                  {tagline}
+                </m.p>
+
+                {/* feature chips */}
+                <m.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1, duration: 0.5 }}
+                  className="flex flex-col gap-2 mt-8 w-full"
+                >
+                  {['🤖 IA DeepSeek', '🌍 Darija · Arabe · Français', '🔒 Sécurisé AES-256'].map(chip => (
+                    <div
+                      key={chip}
+                      className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.07] rounded-lg px-3 py-2"
+                    >
+                      <span className="font-mono text-xs text-white/60">{chip}</span>
+                    </div>
+                  ))}
+                </m.div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Right — form */}
-        <div className="w-full md:w-7/12 p-8 md:p-10 flex flex-col justify-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="md:hidden flex items-center gap-2 mb-6">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: ORANGE }}
-              >
-                <Bot className="w-5 h-5 text-white" />
+          {/* Right — form */}
+          <div className="w-full md:w-7/12 p-8 md:p-10 flex flex-col justify-center">
+            <m.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="md:hidden flex items-center gap-2 mb-6">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: ORANGE }}
+                >
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-mono font-bold text-white">Yelha</span>
               </div>
-              <span className="font-mono font-bold text-white">Yelha</span>
-            </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold mb-1 text-white">
-              {mode === 'signin' ? 'Bienvenue 👋' : 'Créer un compte'}
-            </h1>
-            <p className="text-white/40 mb-7 font-mono text-sm">
-              {mode === 'signin' ? 'Connectez-vous à votre espace' : 'Rejoignez Yelha gratuitement'}
-            </p>
+              <h1 className="text-2xl md:text-3xl font-bold mb-1 text-white">
+                {mode === 'signin' ? 'Bienvenue 👋' : 'Créer un compte'}
+              </h1>
+              <p className="text-white/40 mb-7 font-mono text-sm">
+                {mode === 'signin' ? 'Connectez-vous à votre espace' : 'Rejoignez Yelha gratuitement'}
+              </p>
 
-            {/* injected form content */}
-            {children}
+              {/* injected form content */}
+              {children}
 
-            <p className="text-center text-sm text-white/40 mt-6 font-mono">
-              {switchText}{' '}
-              <a href={switchHref} style={{ color: ORANGE }} className="hover:underline">
-                {switchLabel}
-              </a>
-            </p>
-          </motion.div>
-        </div>
-      </motion.div>
-    </div>
+              <p className="text-center text-sm text-white/40 mt-6 font-mono">
+                {switchText}{' '}
+                <a href={switchHref} style={{ color: ORANGE }} className="hover:underline">
+                  {switchLabel}
+                </a>
+              </p>
+            </m.div>
+          </div>
+        </m.div>
+      </div>
+    </LazyMotion>
   );
 }
 
@@ -305,38 +307,40 @@ export function AuthSubmitButton({
 }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <motion.button
-      type="submit"
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.98 }}
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
-      className="relative w-full overflow-hidden rounded-xl py-3 text-sm font-mono font-semibold text-white transition-all disabled:opacity-60"
-      style={{ background: ORANGE, boxShadow: hovered ? `0 0 20px ${ORANGE}50` : 'none' }}
-      disabled={loading}
-    >
-      <span className="flex items-center justify-center gap-2">
-        {loading ? (
-          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
-            <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
-          </svg>
-        ) : (
-          <>
-            {label}
-            <ArrowRight className="w-4 h-4" />
-          </>
+    <LazyMotion features={domAnimation}>
+      <m.button
+        type="submit"
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
+        onHoverStart={() => setHovered(true)}
+        onHoverEnd={() => setHovered(false)}
+        className="relative w-full overflow-hidden rounded-xl py-3 text-sm font-mono font-semibold text-white transition-all disabled:opacity-60"
+        style={{ background: ORANGE, boxShadow: hovered ? `0 0 20px ${ORANGE}50` : 'none' }}
+        disabled={loading}
+      >
+        <span className="flex items-center justify-center gap-2">
+          {loading ? (
+            <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
+              <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+            </svg>
+          ) : (
+            <>
+              {label}
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </span>
+        {hovered && !loading && (
+          <m.span
+            initial={{ left: '-100%' }}
+            animate={{ left: '100%' }}
+            transition={{ duration: 0.9, ease: 'easeInOut' }}
+            className="absolute top-0 bottom-0 left-0 w-16 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            style={{ filter: 'blur(6px)' }}
+          />
         )}
-      </span>
-      {hovered && !loading && (
-        <motion.span
-          initial={{ left: '-100%' }}
-          animate={{ left: '100%' }}
-          transition={{ duration: 0.9, ease: 'easeInOut' }}
-          className="absolute top-0 bottom-0 left-0 w-16 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-          style={{ filter: 'blur(6px)' }}
-        />
-      )}
-    </motion.button>
+      </m.button>
+    </LazyMotion>
   );
 }

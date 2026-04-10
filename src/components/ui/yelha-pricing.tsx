@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import Link from 'next/link';
 import { Check, Zap, Sparkles } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -111,10 +111,11 @@ export default function YelhaPricing() {
         }}
       />
 
+      <LazyMotion features={domAnimation}>
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-14">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -123,9 +124,9 @@ export default function YelhaPricing() {
           >
             <Sparkles className="w-3.5 h-3.5" style={{ color: ORANGE }} />
             <span className="font-mono text-xs text-white/50">Tarification transparente</span>
-          </motion.div>
+          </m.div>
 
-          <motion.h2
+          <m.h2
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -134,20 +135,20 @@ export default function YelhaPricing() {
           >
             Achetez des tokens,<br />
             <span style={{ color: ORANGE }}>payez ce que vous utilisez</span>
-          </motion.h2>
+          </m.h2>
 
-          <motion.p
+          <m.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
             className="font-mono text-white/40 max-w-lg mx-auto"
           >
-            Pas d'abonnement. Tokens sans expiration. Paiement en Dinars Algériens (DZD).
-          </motion.p>
+            Pas d&apos;abonnement. Tokens sans expiration. Paiement en Dinars Algériens (DZD).
+          </m.p>
 
           {/* Free trial banner */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -159,13 +160,13 @@ export default function YelhaPricing() {
               🎁 <strong style={{ color: ORANGE }}>25 tokens offerts</strong> à l&apos;inscription —{' '}
               <span className="text-white/50">regardez ce que vous pouvez faire avec 25 tokens</span>
             </span>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {PLANS.map((plan, i) => (
-            <motion.div
+            <m.div
               key={plan.name}
               custom={i}
               initial="hidden"
@@ -237,12 +238,12 @@ export default function YelhaPricing() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </m.div>
           ))}
         </div>
 
         {/* Token legend */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -253,8 +254,9 @@ export default function YelhaPricing() {
           <span>🎤 2 tokens = 1 message vocal</span>
           <span>⚡ 0 token = réponses prédéfinies</span>
           <span>♾️ Tokens sans expiration</span>
-        </motion.div>
+        </m.div>
       </div>
+      </LazyMotion>
     </section>
   );
 }

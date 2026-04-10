@@ -16,7 +16,12 @@ const cairo = Cairo({
 
 const locales = ['fr', 'en', 'ar'];
 
-export const metadata: Metadata = {
+export async function generateMetadata({ params: { locale } }: { params: { locale: string } }): Promise<Metadata> {
+  return staticMetadata(locale);
+}
+
+function staticMetadata(locale: string): Metadata {
+  return {
   title: {
     default: 'Yelha — Bot Telegram IA pour les entreprises algériennes',
     template: '%s | Yelha',
@@ -84,7 +89,13 @@ export const metadata: Metadata = {
   verification: {
     google: '',
   },
-};
+  icons: { icon: '/favicon.ico' },
+  other: {
+    'geo.region': 'DZ',
+    'geo.country': 'Algeria',
+  },
+  };
+}
 
 export default async function LocaleLayout({
   children,
@@ -99,14 +110,8 @@ export default async function LocaleLayout({
   const isRTL = locale === 'ar';
 
   return (
-    <html lang={locale} dir={isRTL ? 'rtl' : 'ltr'} className={`${inter.variable} ${cairo.variable}`}>
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-        <meta name="geo.region" content="DZ" />
-        <meta name="geo.country" content="Algeria" />
-        <meta name="language" content={locale === 'ar' ? 'Arabic' : locale === 'fr' ? 'French' : 'English'} />
-      </head>
-      <body className={`${isRTL ? 'font-cairo' : 'font-sans'} antialiased bg-background text-foreground`}>
+    <html lang={locale} dir={isRTL ? 'rtl' : 'ltr'} className={`${inter.variable} ${cairo.variable}`} suppressHydrationWarning>
+      <body className={`${isRTL ? 'font-cairo' : 'font-sans'} antialiased bg-background text-foreground`} suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           <SessionProvider>
             {children}

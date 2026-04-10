@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Menu, Bot, Send, Globe, Mic } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -62,7 +62,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
   }, []);
 
   return (
-    <>
+    <LazyMotion features={domAnimation}>
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -180,7 +180,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
           {titleWords.map((word, i) => (
             <AnimatePresence key={i}>
               {visibleWords.includes(i) && (
-                <motion.span
+                <m.span
                   initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -190,14 +190,14 @@ export function MynaHero({ locale }: MynaHeroProps) {
                   style={word === "l'IA" ? { color: ORANGE } : {}}
                 >
                   {word}
-                </motion.span>
+                </m.span>
               )}
             </AnimatePresence>
           ))}
         </h1>
 
         {/* Subtitle */}
-        <motion.p
+        <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.6 }}
@@ -205,10 +205,10 @@ export function MynaHero({ locale }: MynaHeroProps) {
         >
           Répondez automatiquement à vos clients sur Telegram en arabe, français
           ou anglais — 24h/24 sans effort.
-        </motion.p>
+        </m.p>
 
         {/* CTAs */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.5, duration: 0.5 }}
@@ -227,10 +227,10 @@ export function MynaHero({ locale }: MynaHeroProps) {
               Voir les tarifs
             </button>
           </a>
-        </motion.div>
+        </m.div>
 
         {/* Feature cards */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.8, duration: 0.6 }}
@@ -239,7 +239,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
           {featureCards.map((card, i) => {
             const Icon = card.icon;
             return (
-              <motion.div
+              <m.div
                 key={card.label}
                 whileHover={{ y: -4, scale: 1.02 }}
                 transition={{ type: 'spring', stiffness: 400 }}
@@ -253,12 +253,12 @@ export function MynaHero({ locale }: MynaHeroProps) {
                 </div>
                 <p className="font-mono text-sm font-semibold text-white">{card.label}</p>
                 <p className="font-mono text-xs text-white/40 leading-relaxed">{card.desc}</p>
-              </motion.div>
+              </m.div>
             );
           })}
-        </motion.div>
+        </m.div>
 
       </section>
-    </>
+    </LazyMotion>
   );
 }
