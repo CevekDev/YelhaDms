@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw, Terminal } from 'lucide-react';
+
+const ORANGE = '#FF6B2C';
 
 const DEFAULT_PROMPT = `You are {botName}, an intelligent assistant for {businessName}.
 {botPersonality}
@@ -43,9 +42,9 @@ export default function AdminSettingsForm({ initialPrompt }: { initialPrompt: st
         body: JSON.stringify({ key: 'global_system_prompt', value: prompt }),
       });
       if (res.ok) {
-        toast({ title: 'Settings saved successfully!' });
+        toast({ title: '✅ Prompt système sauvegardé !' });
       } else {
-        toast({ title: 'Error saving settings', variant: 'destructive' });
+        toast({ title: 'Erreur lors de la sauvegarde', variant: 'destructive' });
       }
     } finally {
       setSaving(false);
@@ -53,42 +52,47 @@ export default function AdminSettingsForm({ initialPrompt }: { initialPrompt: st
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Global System Prompt</CardTitle>
-        <CardDescription>
-          This is the base prompt used for all AI conversations across all users and connections.
-          Available placeholders: <code className="bg-muted px-1 rounded text-xs">{'{botName}'}</code>,{' '}
-          <code className="bg-muted px-1 rounded text-xs">{'{businessName}'}</code>,{' '}
-          <code className="bg-muted px-1 rounded text-xs">{'{botPersonality}'}</code>,{' '}
-          <code className="bg-muted px-1 rounded text-xs">{'{predefinedResponses}'}</code>,{' '}
-          <code className="bg-muted px-1 rounded text-xs">{'{customInstructions}'}</code>
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-white/[0.06]">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ORANGE}20` }}>
+          <Terminal className="w-4 h-4" style={{ color: ORANGE }} />
+        </div>
         <div>
-          <Label>System Prompt</Label>
-          <textarea
-            className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[400px] font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
+          <h2 className="font-mono font-semibold text-white text-sm">Prompt système global</h2>
+          <p className="text-xs text-white/30 mt-0.5">
+            Utilisé pour toutes les conversations IA. Variables disponibles :{' '}
+            {['{botName}', '{businessName}', '{botPersonality}', '{predefinedResponses}', '{customInstructions}'].map(v => (
+              <code key={v} className="font-mono text-[10px] px-1 py-0.5 rounded bg-white/[0.06] text-white/50 mr-1">{v}</code>
+            ))}
+          </p>
         </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        <textarea
+          className="w-full rounded-xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 text-sm min-h-[380px] font-mono text-white/80 placeholder:text-white/20 focus:outline-none focus:border-[#FF6B2C]/30 transition-colors resize-y"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+        />
         <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="animate-spin me-2" /> : null}
-            Save Prompt
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setPrompt(DEFAULT_PROMPT)}
-            title="Reset to default"
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 font-mono text-sm text-white px-4 py-2.5 rounded-xl transition-all hover:opacity-90 disabled:opacity-40"
+            style={{ background: ORANGE }}
           >
-            <RotateCcw className="w-4 h-4 me-2" />
-            Reset to Default
-          </Button>
+            {saving && <Loader2 className="animate-spin w-4 h-4" />}
+            Sauvegarder
+          </button>
+          <button
+            onClick={() => setPrompt(DEFAULT_PROMPT)}
+            className="flex items-center gap-2 font-mono text-sm text-white/40 hover:text-white/70 px-4 py-2.5 rounded-xl border border-white/[0.07] hover:bg-white/[0.04] transition-all"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Réinitialiser
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -9,7 +9,7 @@ export default async function DashboardLayout({ children, params: { locale } }: 
   if (!session) redirect(`/${locale}/auth/signin`);
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#080810]">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <DashboardNavbar />

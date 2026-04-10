@@ -6,7 +6,6 @@ import { Resend } from 'resend';
 import { z } from 'zod';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
 const schema = z.object({
   targetType: z.enum(['all', 'user']),
@@ -37,9 +36,7 @@ export async function POST(req: NextRequest) {
       select: { email: true, name: true },
     });
   } else {
-    if (!userId) {
-      return NextResponse.json({ error: 'userId requis' }, { status: 400 });
-    }
+    if (!userId) return NextResponse.json({ error: 'userId requis' }, { status: 400 });
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true, name: true },
@@ -52,22 +49,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Aucun destinataire trouvé' }, { status: 400 });
   }
 
-  // Send emails (batch to avoid rate limits)
+  // Resend free plan: use onboarding@resend.dev as FROM (no display name)
+  const FROM = 'onboarding@resend.dev';
+
   const results = await Promise.allSettled(
     recipients.map(r =>
       resend.emails.send({
-        from: `Yelha <${FROM}>`,
+        from: FROM,
         to: r.email,
-        subject,
+        subject: `[Yelha] ${subject}`,
         html: `
-          <div style="font-family:monospace;max-width:560px;margin:0 auto;background:#0a0a0a;color:#fff;padding:32px;border-radius:12px;">
-            <div style="margin-bottom:24px;">
-              <span style="background:#FF6B2C;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;">Yelha</span>
+          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#f9fafb;border-radius:12px;">
+            <div style="background:#0a0a0a;padding:20px 24px;border-radius:8px 8px 0 0;text-align:center;">
+              <span style="background:#FF6B2C;color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:monospace;">Yelha</span>
             </div>
-            <h2 style="color:#fff;margin-bottom:16px;">${subject}</h2>
-            <div style="color:rgba(255,255,255,0.7);line-height:1.7;white-space:pre-wrap;">${message}</div>
-            <hr style="border-color:rgba(255,255,255,0.1);margin:32px 0;" />
-            <p style="color:rgba(255,255,255,0.3);font-size:11px;">© 2025 Yelha — mehdimerah06.pro@gmail.com</p>
+            <div style="background:#fff;padding:32px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;border-top:none;">
+              <h2 style="color:#111;margin-top:0;">${subject}</h2>
+              <div style="color:#555;line-height:1.7;white-space:pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
+              <p style="color:#aaa;font-size:11px;margin:0;">© 2025 Yelha · mehdimerah06.pro@gmail.com</p>
+            </div>
           </div>
         `,
       })
@@ -76,6 +77,11 @@ export async function POST(req: NextRequest) {
 
   const sent = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
+  const errors = results
+    .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    .map(r => r.reason?.message || 'Unknown error');
+
+  if (failed > 0) console.error('[send-message] failed:', errors);
 
   return NextResponse.json({ success: true, sent, failed, total: recipients.length });
 }

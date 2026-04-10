@@ -1,12 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Tag, Plus, Loader2, X, Shuffle } from 'lucide-react';
+
+const PURPLE = '#a78bfa';
 
 interface PromoCode {
   id: string;
@@ -38,6 +35,9 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
     expiresAt: '',
     description: '',
   });
+
+  const inputClass =
+    'w-full bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2 text-sm font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-[#a78bfa]/40 transition-colors';
 
   const refreshCodes = async () => {
     const res = await fetch('/api/admin/promo-codes');
@@ -84,90 +84,107 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Tag className="w-5 h-5 text-purple-500" />
-          Codes promo
-        </CardTitle>
-        <Button size="sm" onClick={() => setShowForm(v => !v)} variant="outline">
-          <Plus className="w-4 h-4 mr-1" /> Nouveau code
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${PURPLE}20` }}>
+            <Tag className="w-4 h-4" style={{ color: PURPLE }} />
+          </div>
+          <h2 className="font-mono font-semibold text-white text-sm">Codes promo</h2>
+        </div>
+        <button
+          onClick={() => setShowForm(v => !v)}
+          className="flex items-center gap-1.5 font-mono text-xs text-white px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.07] transition-all"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Nouveau code
+        </button>
+      </div>
+
+      <div className="p-5 space-y-4">
         {/* Create form */}
         {showForm && (
-          <div className="border rounded-xl p-4 bg-purple-50/50 space-y-3">
-            <h3 className="font-semibold text-sm text-purple-800">Créer un code promo</h3>
+          <div
+            className="rounded-xl p-4 space-y-3 border"
+            style={{ background: `${PURPLE}08`, borderColor: `${PURPLE}25` }}
+          >
+            <h3 className="font-mono font-semibold text-sm" style={{ color: PURPLE }}>Créer un code promo</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Code</Label>
+                <label className="text-xs text-white/40 font-mono">Code</label>
                 <div className="flex gap-1.5 mt-1">
-                  <Input
+                  <input
                     value={form.code}
                     onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
                     placeholder="YELHA-XXXXX"
-                    className="font-mono"
+                    className={inputClass}
                   />
-                  <Button
-                    size="icon"
-                    variant="outline"
+                  <button
                     onClick={() => setForm(f => ({ ...f, code: generateCode() }))}
                     title="Générer"
+                    className="w-9 h-9 flex items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.06] hover:bg-white/[0.10] transition-colors flex-shrink-0"
                   >
-                    <Shuffle className="w-4 h-4" />
-                  </Button>
+                    <Shuffle className="w-3.5 h-3.5 text-white/50" />
+                  </button>
                 </div>
               </div>
               <div>
-                <Label className="text-xs">Tokens offerts</Label>
-                <Input
+                <label className="text-xs text-white/40 font-mono">Tokens offerts</label>
+                <input
                   type="number"
                   value={form.tokens}
                   onChange={e => setForm(f => ({ ...f, tokens: e.target.value }))}
                   min={1}
-                  className="mt-1"
+                  className={inputClass + ' mt-1'}
                 />
               </div>
               <div>
-                <Label className="text-xs">Utilisations max</Label>
-                <Input
+                <label className="text-xs text-white/40 font-mono">Utilisations max</label>
+                <input
                   type="number"
                   value={form.maxUses}
                   onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))}
                   min={1}
-                  className="mt-1"
+                  className={inputClass + ' mt-1'}
                 />
               </div>
               <div>
-                <Label className="text-xs">Expire le (optionnel)</Label>
-                <Input
+                <label className="text-xs text-white/40 font-mono">Expire le (optionnel)</label>
+                <input
                   type="date"
                   value={form.expiresAt}
                   onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))}
-                  className="mt-1"
+                  className={inputClass + ' mt-1'}
+                  style={{ colorScheme: 'dark' }}
                 />
               </div>
             </div>
             <div>
-              <Label className="text-xs">Description (optionnel)</Label>
-              <Input
+              <label className="text-xs text-white/40 font-mono">Description (optionnel)</label>
+              <input
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Ex: Offre lancement"
-                className="mt-1"
+                className={inputClass + ' mt-1'}
               />
             </div>
             <div className="flex gap-2">
-              <Button
+              <button
                 onClick={handleCreate}
                 disabled={loading || !form.code || !form.tokens}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="flex items-center gap-2 font-mono text-sm text-white px-4 py-2 rounded-xl transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: PURPLE }}
               >
-                {loading ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
+                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 Créer le code
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+              </button>
+              <button
+                onClick={() => setShowForm(false)}
+                className="font-mono text-sm text-white/40 hover:text-white/70 px-4 py-2 rounded-xl transition-colors"
+              >
+                Annuler
+              </button>
             </div>
           </div>
         )}
@@ -175,48 +192,56 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
         {/* Codes list */}
         <div className="space-y-2">
           {codes.length === 0 && (
-            <p className="text-center text-muted-foreground text-sm py-6">Aucun code promo créé</p>
+            <p className="text-center text-white/20 text-sm py-8 font-mono">Aucun code promo créé</p>
           )}
-          {codes.map(code => (
-            <div
-              key={code.id}
-              className={`flex items-center justify-between border rounded-xl px-4 py-3 ${!code.isActive ? 'opacity-50' : ''}`}
-            >
-              <div className="flex items-center gap-3">
+          {codes.map(code => {
+            const isExpired = code.expiresAt && new Date(code.expiresAt as string) < new Date();
+            return (
+              <div
+                key={code.id}
+                className="flex items-center justify-between rounded-xl px-4 py-3 border border-white/[0.05] bg-white/[0.02] transition-opacity"
+                style={{ opacity: !code.isActive ? 0.45 : 1 }}
+              >
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-sm">{code.code}</span>
-                    {!code.isActive && <Badge variant="secondary" className="text-[10px]">Désactivé</Badge>}
-                    {code.expiresAt && new Date(code.expiresAt as string) < new Date() && (
-                      <Badge variant="destructive" className="text-[10px]">Expiré</Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-sm text-white">{code.code}</span>
+                    {!code.isActive && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white/[0.08] text-white/40">
+                        Désactivé
+                      </span>
+                    )}
+                    {isExpired && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-400">
+                        Expiré
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-muted-foreground">
-                      <span className="font-semibold text-purple-600">+{code.tokens}</span> tokens
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-xs font-mono" style={{ color: PURPLE }}>
+                      +{code.tokens} tokens
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-white/30 font-mono">
                       {code._count.uses}/{code.maxUses} utilisations
                     </span>
                     {code.description && (
-                      <span className="text-xs text-muted-foreground italic">{code.description}</span>
+                      <span className="text-xs text-white/20 italic">{code.description}</span>
                     )}
                   </div>
                 </div>
+                {code.isActive && (
+                  <button
+                    onClick={() => handleDeactivate(code.id, code.code)}
+                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400 transition-colors"
+                    title="Désactiver"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              {code.isActive && (
-                <button
-                  onClick={() => handleDeactivate(code.id, code.code)}
-                  className="text-destructive hover:text-destructive/80 p-1 rounded"
-                  title="Désactiver"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

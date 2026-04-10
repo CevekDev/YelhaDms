@@ -1,10 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Coins, Loader2, Search } from 'lucide-react';
+
+const ORANGE = '#FF6B2C';
 
 interface User {
   id: string;
@@ -53,87 +52,99 @@ export default function AdminTokensPanel({ users }: { users: User[] }) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Coins className="w-5 h-5 text-orange-500" />
-          Gestion des tokens utilisateurs
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* User search */}
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-white/[0.06]">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ORANGE}20` }}>
+          <Coins className="w-4 h-4" style={{ color: ORANGE }} />
+        </div>
+        <h2 className="font-mono font-semibold text-white text-sm">Gestion des tokens utilisateurs</h2>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+          <input
+            type="text"
             placeholder="Rechercher un utilisateur..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9"
+            className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl pl-9 pr-4 py-2.5 text-sm font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-[#FF6B2C]/40 transition-colors"
           />
         </div>
 
         {/* User list */}
-        <div className="max-h-48 overflow-y-auto border rounded-lg divide-y">
+        <div className="max-h-52 overflow-y-auto rounded-xl border border-white/[0.06] divide-y divide-white/[0.04]">
           {filtered.slice(0, 20).map(user => (
             <div
               key={user.id}
               onClick={() => setSelectedUserId(user.id)}
-              className={`flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors ${selectedUserId === user.id ? 'bg-orange-50 border-l-2 border-l-orange-500' : ''}`}
+              className="flex items-center justify-between px-4 py-3 cursor-pointer transition-colors"
+              style={{
+                background: selectedUserId === user.id ? `${ORANGE}10` : 'transparent',
+                borderLeft: selectedUserId === user.id ? `2px solid ${ORANGE}` : '2px solid transparent',
+              }}
+              onMouseEnter={e => { if (selectedUserId !== user.id) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
+              onMouseLeave={e => { if (selectedUserId !== user.id) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               <div>
-                <p className="text-sm font-medium">{user.name || 'Sans nom'}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-sm font-medium text-white/80">{user.name || 'Sans nom'}</p>
+                <p className="text-xs text-white/30">{user.email}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-mono font-bold">
-                  {user.unlimitedTokens ? '∞' : `${user.tokenBalance.toLocaleString()}`}
-                  <span className="text-xs text-muted-foreground ml-1">tokens</span>
+                <p className="text-sm font-mono font-bold text-white">
+                  {user.unlimitedTokens ? '∞' : user.tokenBalance.toLocaleString()}
+                  <span className="text-xs text-white/30 ml-1">tokens</span>
                 </p>
-                <p className="text-xs text-muted-foreground">{user.role}</p>
+                <p className="text-xs text-white/20">{user.role}</p>
               </div>
             </div>
           ))}
           {filtered.length === 0 && (
-            <p className="text-center text-muted-foreground text-sm py-4">Aucun utilisateur trouvé</p>
+            <p className="text-center text-white/30 text-sm py-6 font-mono">Aucun utilisateur trouvé</p>
           )}
         </div>
 
         {/* Grant form */}
         {selectedUserId && (
-          <div className="border rounded-lg p-4 bg-orange-50/50 space-y-3">
-            <p className="text-sm font-medium text-orange-700">
-              Sélectionné : {selected?.name || selected?.email}
-              <span className="ml-2 text-muted-foreground font-normal">
-                (Solde actuel : {selected?.unlimitedTokens ? '∞' : selected?.tokenBalance} tokens)
+          <div
+            className="rounded-xl p-4 space-y-3 border"
+            style={{ background: `${ORANGE}08`, borderColor: `${ORANGE}25` }}
+          >
+            <p className="text-sm font-mono font-medium" style={{ color: ORANGE }}>
+              {selected?.name || selected?.email}
+              <span className="text-white/30 font-normal ml-2">
+                — Solde actuel : {selected?.unlimitedTokens ? '∞' : selected?.tokenBalance} tokens
               </span>
             </p>
             <div className="flex gap-2">
-              <Input
+              <input
                 type="number"
-                placeholder="Nombre de tokens"
+                placeholder="Nb de tokens"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 min={1}
-                className="w-40"
+                className="w-36 bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2 text-sm font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-[#FF6B2C]/40 transition-colors"
               />
-              <Input
+              <input
                 placeholder="Description (optionnel)"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                className="flex-1"
+                className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2 text-sm font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-[#FF6B2C]/40 transition-colors"
               />
             </div>
-            <Button
+            <button
               onClick={handleGrant}
               disabled={loading || !amount || Number(amount) <= 0}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="flex items-center gap-2 font-mono text-sm text-white px-4 py-2.5 rounded-xl transition-all hover:opacity-90 disabled:opacity-40"
+              style={{ background: ORANGE }}
             >
-              {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Coins className="w-4 h-4 mr-2" />}
+              {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Coins className="w-4 h-4" />}
               Ajouter {amount ? `${Number(amount).toLocaleString()}` : ''} tokens
-            </Button>
+            </button>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
