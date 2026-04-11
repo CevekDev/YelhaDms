@@ -1,51 +1,42 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Menu, Bot, Send, Globe, Mic } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslations } from 'next-intl';
 
 const ORANGE = '#FF6B2C';
-
-const titleWords = ['Automatisez', 'vos', 'messages', 'avec', "l'IA"];
-
-const featureCards = [
-  {
-    icon: Send,
-    label: 'Telegram Bot',
-    desc: 'Bot intelligent disponible 24h/24',
-    color: '#0EA5E9',
-  },
-  {
-    icon: Globe,
-    label: 'IA Multilingue',
-    desc: 'Darija, Arabe, Français, Anglais',
-    color: ORANGE,
-  },
-  {
-    icon: Mic,
-    label: 'Vocaux → Texte',
-    desc: 'Transcription via OpenAI Whisper',
-    color: '#8B5CF6',
-  },
-];
-
-const navLinks = [
-  { href: '#features', label: 'Fonctionnalités' },
-  { href: '#pricing', label: 'Tarifs' },
-  { href: '#how', label: 'Comment ça marche' },
-];
 
 interface MynaHeroProps {
   locale: string;
 }
 
 export function MynaHero({ locale }: MynaHeroProps) {
+  const t = useTranslations();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [visibleWords, setVisibleWords] = useState<number[]>([]);
+
+  const titleWords = [
+    t('hero.title1'),
+    t('hero.title2'),
+    t('hero.title3'),
+  ];
+
+  const featureCards = [
+    { icon: Send,  label: 'Telegram Bot',     desc: t('hero.telegram'), color: '#0EA5E9' },
+    { icon: Globe, label: t('features.multilang.title'), desc: t('hero.multilang'), color: ORANGE },
+    { icon: Mic,   label: t('features.voice.title'),     desc: t('hero.voice'),     color: '#8B5CF6' },
+  ];
+
+  const navLinks = [
+    { href: '#features',  label: t('nav.features') },
+    { href: '#pricing',   label: t('nav.pricing') },
+    { href: '#how',       label: t('nav.howItWorks') },
+  ];
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -59,6 +50,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
         setVisibleWords(prev => [...prev, i]);
       }, 120 * i + 400);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -80,9 +72,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
             >
               <Bot className="w-5 h-5 text-white" />
             </div>
-            <span className="font-mono font-bold text-white text-lg tracking-tight">
-              Yelha
-            </span>
+            <span className="font-mono font-bold text-white text-lg tracking-tight">Yelha</span>
           </Link>
 
           {/* Desktop nav */}
@@ -103,7 +93,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
             <LanguageSwitcher />
             <Link href={`/${locale}/auth/signin`}>
               <button className="font-mono text-sm text-white/70 hover:text-white px-4 py-2 rounded-lg transition-colors">
-                Connexion
+                {t('nav.signIn')}
               </button>
             </Link>
             <Link href={`/${locale}/auth/signup`}>
@@ -111,7 +101,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
                 className="font-mono text-sm text-white px-4 py-2 rounded-lg transition-all hover:opacity-90 active:scale-95"
                 style={{ background: ORANGE }}
               >
-                Commencer
+                {t('nav.signUp')}
               </button>
             </Link>
           </div>
@@ -138,7 +128,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
                 <div className="flex flex-col gap-3 mt-4">
                   <Link href={`/${locale}/auth/signin`} onClick={() => setMenuOpen(false)}>
                     <button className="font-mono text-sm text-white/70 hover:text-white w-full border border-white/20 px-4 py-3 rounded-lg transition-colors">
-                      Connexion
+                      {t('nav.signIn')}
                     </button>
                   </Link>
                   <Link href={`/${locale}/auth/signup`} onClick={() => setMenuOpen(false)}>
@@ -146,7 +136,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
                       className="font-mono text-sm text-white w-full px-4 py-3 rounded-lg transition-all hover:opacity-90"
                       style={{ background: ORANGE }}
                     >
-                      Commencer gratuitement
+                      {t('hero.cta')}
                     </button>
                   </Link>
                 </div>
@@ -175,6 +165,16 @@ export function MynaHero({ locale }: MynaHeroProps) {
         />
 
         {/* Badge */}
+        <m.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-8"
+        >
+          <Bot className="w-3.5 h-3.5" style={{ color: ORANGE }} />
+          <span className="font-mono text-xs text-white/50">{t('hero.badge')}</span>
+        </m.div>
+
         {/* Title — word by word */}
         <h1 className="font-mono text-5xl md:text-7xl font-bold text-center leading-[1.1] mb-6">
           {titleWords.map((word, i) => (
@@ -184,10 +184,8 @@ export function MynaHero({ locale }: MynaHeroProps) {
                   initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
-                  className={`inline-block mr-3 ${
-                    word === "l'IA" ? '' : 'text-white'
-                  }`}
-                  style={word === "l'IA" ? { color: ORANGE } : {}}
+                  className="inline-block mr-3"
+                  style={i === titleWords.length - 1 ? { color: ORANGE } : { color: 'white' }}
                 >
                   {word}
                 </m.span>
@@ -203,8 +201,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
           transition={{ delay: 1.2, duration: 0.6 }}
           className="font-mono text-white/50 text-center max-w-xl text-base md:text-lg mb-10 leading-relaxed"
         >
-          Répondez automatiquement à vos clients sur Telegram en arabe, français
-          ou anglais — 24h/24 sans effort.
+          {t('hero.subtitle')}
         </m.p>
 
         {/* CTAs */}
@@ -212,22 +209,31 @@ export function MynaHero({ locale }: MynaHeroProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.5, duration: 0.5 }}
-          className="flex flex-col sm:flex-row items-center gap-4 mb-20"
+          className="flex flex-col sm:flex-row items-center gap-4 mb-8"
         >
           <Link href={`/${locale}/auth/signup`}>
             <button
               className="font-mono text-white text-sm px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 shadow-lg"
               style={{ background: ORANGE, boxShadow: `0 0 24px ${ORANGE}40` }}
             >
-              Essayez Yelha gratuitement →
+              {t('hero.cta')}
             </button>
           </Link>
           <a href="#pricing">
             <button className="font-mono text-sm text-white/60 hover:text-white px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 transition-all">
-              Voir les tarifs
+              {t('nav.pricing')}
             </button>
           </a>
         </m.div>
+
+        <m.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.7, duration: 0.5 }}
+          className="font-mono text-xs text-white/20 mb-16"
+        >
+          {t('hero.ctaSub')}
+        </m.p>
 
         {/* Feature cards */}
         <m.div
@@ -236,7 +242,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
           transition={{ delay: 1.8, duration: 0.6 }}
           className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl"
         >
-          {featureCards.map((card, i) => {
+          {featureCards.map((card) => {
             const Icon = card.icon;
             return (
               <m.div
@@ -257,7 +263,6 @@ export function MynaHero({ locale }: MynaHeroProps) {
             );
           })}
         </m.div>
-
       </section>
     </LazyMotion>
   );

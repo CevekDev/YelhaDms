@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getTranslations } from 'next-intl/server';
 import OrdersClient from '@/components/dashboard/orders-client';
 
 export default async function OrdersPage({
@@ -11,6 +12,8 @@ export default async function OrdersPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect(`/${locale}/auth/signin`);
+
+  const t = await getTranslations({ locale, namespace: 'orders' });
 
   const orders = await prisma.order.findMany({
     where: { userId: session.user.id },
@@ -26,10 +29,8 @@ export default async function OrdersPage({
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold font-mono text-white">Commandes</h1>
-        <p className="text-white/30 text-sm mt-1 font-mono">
-          Toutes les commandes validées par vos bots
-        </p>
+        <h1 className="text-2xl font-bold font-mono text-white">{t('title')}</h1>
+        <p className="text-white/30 text-sm mt-1 font-mono">{t('subtitle')}</p>
       </div>
 
       <OrdersClient initialOrders={orders} />

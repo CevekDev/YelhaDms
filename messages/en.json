@@ -3,10 +3,90 @@
     "home": "Home",
     "features": "Features",
     "pricing": "Pricing",
+    "howItWorks": "How It Works",
     "dashboard": "Dashboard",
     "signIn": "Sign In",
     "signUp": "Sign Up",
     "signOut": "Sign Out"
+  },
+  "hero": {
+    "badge": "AI Bot for Algerian e-commerce",
+    "title1": "Automate",
+    "title2": "your sales",
+    "title3": "with AI",
+    "subtitle": "Your bot responds 24/7, takes orders, speaks Darija & Arabic and manages your customers automatically.",
+    "cta": "Get started for free",
+    "ctaSub": "25 tokens included • No credit card required",
+    "telegram": "Smart bot available 24/7",
+    "multilang": "Darija, Arabic, French, English",
+    "voice": "Transcription via OpenAI Whisper"
+  },
+  "features": {
+    "badge": "Features",
+    "title": "Everything you need",
+    "subtitle": "A complete platform to automate your sales and deliver exceptional customer service.",
+    "telegram": { "title": "AI Telegram Bot", "desc": "Connect your bot in seconds. Automatically replies to all your customers 24/7." },
+    "multilang": { "title": "Multilingual AI", "desc": "Replies in Arabic (MSA & Darija), French, English automatically based on the customer's language." },
+    "voice": { "title": "Voice Messages", "desc": "Transcribes voice messages via OpenAI Whisper and replies intelligently in text." },
+    "orders": { "title": "Order Taking", "desc": "The bot automatically collects name, phone number, wilaya and commune for each order." },
+    "payment": { "title": "Pay-as-you-go", "desc": "1 token per text, 2 tokens per voice. Pay only for what you use in DZD." },
+    "security": { "title": "Enterprise Security", "desc": "AES-256 encryption, JWT, rate limiting. Your data stays secure." }
+  },
+  "howItWorks": {
+    "badge": "How It Works",
+    "title": "Up and running in 3 steps",
+    "step1": { "title": "Create your account", "desc": "Sign up and receive 25 free tokens to test the service." },
+    "step2": { "title": "Connect Telegram", "desc": "Create a bot via @BotFather and paste the token — the webhook is configured automatically." },
+    "step3": { "title": "AI replies for you", "desc": "Your bot responds 24/7 in your customers' language and takes orders automatically." }
+  },
+  "pricing": {
+    "badge": "Transparent Pricing",
+    "title1": "Buy tokens,",
+    "title2": "pay for what you use",
+    "subtitle": "No subscription. Tokens never expire. Payment in Algerian Dinars (DZD).",
+    "trial": "25 tokens included on sign-up",
+    "trialSub": "see what you can do with 25 tokens",
+    "popular": "★ Most popular",
+    "da": "DA",
+    "tokens": "tokens",
+    "perToken": "DA / token",
+    "start": "Get started",
+    "legend": {
+      "text": "1 token = 1 text message",
+      "voice": "2 tokens = 1 voice message",
+      "predefined": "0 token = predefined replies",
+      "noExpiry": "Tokens never expire"
+    },
+    "plans": {
+      "starter": {
+        "desc": "Perfect to get started",
+        "features": ["500 text messages","200 voice messages","AI Telegram Bot","Multilingual AI (Darija, AR, FR, EN)","Predefined replies (0.5 token)"]
+      },
+      "business": {
+        "desc": "Most popular",
+        "features": ["2,000 text messages","1,000 voice messages","AI Telegram Bot","Multilingual AI","Predefined replies (0 token)","Automatic order taking","Shopify & WooCommerce integration","Custom instructions","Business hours"]
+      },
+      "pro": {
+        "desc": "High volume",
+        "features": ["5,000 text messages","2,500 voice messages","Everything in Business","Delivery company integration","Automatic order confirmation","Google Sheets integration","Multi Telegram bots","Priority support"]
+      },
+      "agency": {
+        "desc": "Agencies & resellers",
+        "features": ["15,000 text messages","7,500 voice messages","Everything in Pro","Automatic parcel tracking","Unlimited bots","Dedicated support","Custom onboarding"]
+      }
+    }
+  },
+  "cta": {
+    "title1": "Ready to automate",
+    "title2": "your sales?",
+    "subtitle": "Join Algerian stores using Yelha to sell more.",
+    "button": "Get started for free — 25 tokens included →"
+  },
+  "footer": {
+    "rights": "© 2025 Yelha. All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
   },
   "auth": {
     "signIn": "Sign In",
@@ -18,7 +98,6 @@
     "forgotPassword": "Forgot password?",
     "rememberMe": "Remember me",
     "continueWithGoogle": "Continue with Google",
-    "continueWithApple": "Continue with Apple",
     "acceptTerms": "I accept the terms of service and privacy policy",
     "alreadyHaveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
@@ -53,19 +132,50 @@
   "dashboard": {
     "overview": "Overview",
     "connections": "Connections",
+    "conversations": "Conversations",
+    "botSettings": "Bot Settings",
+    "products": "Products",
+    "orders": "Orders",
+    "delivery": "Delivery",
     "tokens": "Tokens",
     "settings": "Settings",
-    "messages": "Messages",
     "analytics": "Analytics",
     "tokenBalance": "Token Balance",
     "buyTokens": "Buy Tokens",
     "activeConnections": "Active Connections",
     "messagesToday": "Messages Today",
-    "totalMessages": "Total Messages"
+    "totalMessages": "Total Messages",
+    "soon": "SOON"
+  },
+  "orders": {
+    "title": "Orders",
+    "subtitle": "All orders validated by your bots",
+    "empty": "No orders",
+    "emptyDesc": "Orders taken by your bots will appear here automatically",
+    "status": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "PROCESSING": "Processing",
+      "SHIPPED": "Shipped",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled",
+      "RETURNED": "Returned"
+    },
+    "actions": {
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "ship": "Ship",
+      "deliver": "Delivered",
+      "return": "Return",
+      "requestConfirm": "Request confirmation",
+      "requesting": "Sending..."
+    },
+    "confirmRequest": "The bot will send a message to the customer to confirm their order and contact details.",
+    "totalRevenue": "Total Revenue"
   },
   "connections": {
     "title": "My Connections",
-    "add": "Add Connection",
+    "add": "Add",
     "platform": "Platform",
     "name": "Name",
     "status": "Status",
@@ -120,71 +230,31 @@
   },
   "admin": {
     "title": "Admin Panel",
+    "overview": "Overview",
     "users": "Users",
+    "accounting": "Accounting",
     "packages": "Packages",
-    "transactions": "Transactions",
+    "promoCodes": "Promo Codes",
     "settings": "Settings",
     "stats": "Statistics",
     "totalUsers": "Total Users",
     "activeUsers": "Active Users",
     "totalRevenue": "Total Revenue",
     "totalTokensSold": "Total Tokens Sold",
-    "pendingPayments": "Pending Payments",
-    "approvePayment": "Approve Payment",
-    "rejectPayment": "Reject Payment",
     "grantTokens": "Grant Tokens",
-    "revokeTokens": "Revoke Tokens",
-    "banUser": "Ban User",
-    "unbanUser": "Unban User",
-    "makeAdmin": "Make Admin",
-    "removeAdmin": "Remove Admin",
-    "search": "Search users...",
-    "filter": "Filter",
+    "banUser": "Ban",
+    "unbanUser": "Unban",
+    "search": "Search...",
     "all": "All",
     "banned": "Banned",
     "admins": "Admins",
-    "exportCsv": "Export CSV",
-    "package": "Package",
-    "amount": "Amount",
-    "date": "Date",
-    "status": "Status",
-    "pending": "Pending",
-    "approved": "Approved",
-    "rejected": "Rejected",
-    "proof": "Payment Proof",
-    "viewProof": "View Proof",
-    "noProof": "No proof",
-    "confirmApprove": "Are you sure you want to approve this payment?",
-    "confirmReject": "Are you sure you want to reject this payment?",
-    "tokenAmount": "Token Amount",
-    "reason": "Reason",
-    "optional": "optional",
-    "globalPrompt": "Global System Prompt",
-    "savePrompt": "Save Prompt",
-    "promptSaved": "Prompt saved successfully",
-    "maintenance": "Maintenance Mode",
-    "maintenanceDesc": "When enabled, the app shows a maintenance page to all users.",
-    "promoCode": "Promo Code",
-    "promoCodes": "Promo Codes",
-    "createPromo": "Create Promo Code",
-    "discount": "Discount",
-    "uses": "Uses",
-    "maxUses": "Max Uses",
-    "expires": "Expires",
-    "active": "Active",
-    "inactive": "Inactive",
-    "deletePromo": "Delete Promo Code",
-    "noUsers": "No users found",
-    "noTransactions": "No transactions found",
-    "noPromos": "No promo codes found",
-    "loading": "Loading...",
     "role": "Role",
     "email": "Email",
     "name": "Name",
     "tokens": "Tokens",
     "joined": "Joined",
-    "lastActive": "Last Active",
-    "actions": "Actions"
+    "actions": "Actions",
+    "noUsers": "No users found"
   },
   "errors": {
     "generic": "An error occurred. Please try again.",
@@ -202,6 +272,7 @@
     "success": "Success",
     "error": "Error",
     "confirm": "Confirm",
-    "back": "Back"
+    "back": "Back",
+    "soon": "Soon"
   }
 }

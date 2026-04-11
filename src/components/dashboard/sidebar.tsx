@@ -21,12 +21,12 @@ export function Sidebar() {
   const { data: session } = useSession();
 
   const mainNavItems = [
-    { href: `/${locale}/dashboard`, label: 'Vue d\'ensemble', icon: LayoutDashboard, exact: true },
-    { href: `/${locale}/dashboard/conversations`, label: 'Conversations', icon: MessageSquare },
-    { href: `/${locale}/dashboard/bot-settings`, label: 'Réglage du bot', icon: Settings2 },
-    { href: `/${locale}/dashboard/products`, label: 'Produits', icon: Package },
-    { href: `/${locale}/dashboard/orders`, label: 'Commandes', icon: ShoppingCart },
-    { href: `/${locale}/dashboard/delivery`, label: 'Livraison', icon: Truck, soon: true },
+    { href: `/${locale}/dashboard`, label: t('overview'), icon: LayoutDashboard, exact: true },
+    { href: `/${locale}/dashboard/conversations`, label: t('conversations'), icon: MessageSquare },
+    { href: `/${locale}/dashboard/bot-settings`, label: t('botSettings'), icon: Settings2 },
+    { href: `/${locale}/dashboard/products`, label: t('products'), icon: Package },
+    { href: `/${locale}/dashboard/orders`, label: t('orders'), icon: ShoppingCart },
+    { href: `/${locale}/dashboard/delivery`, label: t('delivery'), icon: Truck, soon: true },
   ];
 
   const secondaryNavItems = [
@@ -71,7 +71,7 @@ export function Sidebar() {
         <span className="flex-1">{item.label}</span>
         {item.soon && (
           <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/30 border border-white/10 leading-none">
-            BIENTÔT
+            {t('soon')}
           </span>
         )}
         {isActive && !item.soon && (

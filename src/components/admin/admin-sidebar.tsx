@@ -7,21 +7,24 @@ import {
   LogOut, Bot, Shield, BarChart3, Calculator,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 
 const ORANGE = '#FF6B2C';
 
 export function AdminSidebar() {
+  const t = useTranslations('admin');
+  const tNav = useTranslations('nav');
   const pathname = usePathname();
   const params = useParams();
   const locale = params.locale as string;
   const { data: session } = useSession();
 
   const navItems = [
-    { href: `/${locale}/admin`, label: "Vue d'ensemble", icon: LayoutDashboard, exact: true },
-    { href: `/${locale}/admin/users`, label: 'Utilisateurs', icon: Users, exact: false },
-    { href: `/${locale}/admin/accounting`, label: 'Comptabilité', icon: Calculator, exact: false },
-    { href: `/${locale}/admin/promo`, label: 'Codes promo', icon: Tag, exact: false },
-    { href: `/${locale}/admin/settings`, label: 'Paramètres', icon: Settings, exact: false },
+    { href: `/${locale}/admin`, label: t('overview'), icon: LayoutDashboard, exact: true },
+    { href: `/${locale}/admin/users`, label: t('users'), icon: Users, exact: false },
+    { href: `/${locale}/admin/accounting`, label: t('accounting'), icon: Calculator, exact: false },
+    { href: `/${locale}/admin/promo`, label: t('promoCodes'), icon: Tag, exact: false },
+    { href: `/${locale}/admin/settings`, label: t('settings'), icon: Settings, exact: false },
   ];
 
   return (
@@ -78,7 +81,7 @@ export function AdminSidebar() {
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/25 hover:text-white/50 hover:bg-white/[0.03] transition-all"
           >
             <BarChart3 className="w-4 h-4 flex-shrink-0" />
-            <span>Espace client</span>
+            <span>{tNav('dashboard')}</span>
           </Link>
         </div>
       </nav>
@@ -99,7 +102,7 @@ export function AdminSidebar() {
           className="flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-sm text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-all"
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
-          Déconnexion
+          {tNav('signOut')}
         </button>
       </div>
     </div>

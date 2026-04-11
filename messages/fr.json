@@ -3,10 +3,150 @@
     "home": "Accueil",
     "features": "Fonctionnalités",
     "pricing": "Tarifs",
+    "howItWorks": "Comment ça marche",
     "dashboard": "Tableau de bord",
     "signIn": "Se connecter",
     "signUp": "S'inscrire",
     "signOut": "Se déconnecter"
+  },
+  "hero": {
+    "badge": "Bot IA pour e-commerce algérien",
+    "title1": "Automatisez",
+    "title2": "vos ventes",
+    "title3": "avec l'IA",
+    "subtitle": "Votre bot répond 24h/24, prend des commandes, parle Darija & arabe et gère vos clients en automatique.",
+    "cta": "Commencer gratuitement",
+    "ctaSub": "25 tokens offerts • Sans carte bancaire",
+    "telegram": "Bot intelligent disponible 24h/24",
+    "multilang": "Darija, Arabe, Français, Anglais",
+    "voice": "Transcription via OpenAI Whisper"
+  },
+  "features": {
+    "badge": "Fonctionnalités",
+    "title": "Tout ce dont vous avez besoin",
+    "subtitle": "Une plateforme complète pour automatiser vos ventes et offrir un service client exceptionnel.",
+    "telegram": {
+      "title": "Bot Telegram IA",
+      "desc": "Connectez votre bot en quelques secondes. Répond automatiquement à tous vos clients 24h/24."
+    },
+    "multilang": {
+      "title": "IA Multilingue",
+      "desc": "Répond en arabe (MSA & Darija), français, anglais automatiquement selon la langue du client."
+    },
+    "voice": {
+      "title": "Messages vocaux",
+      "desc": "Transcrit les vocaux via OpenAI Whisper et répond intelligemment en texte."
+    },
+    "orders": {
+      "title": "Prise de commandes",
+      "desc": "Le bot collecte automatiquement nom, téléphone, wilaya et commune pour chaque commande."
+    },
+    "payment": {
+      "title": "Paiement à l'usage",
+      "desc": "1 token par texte, 2 tokens par vocal. Payez uniquement ce que vous utilisez en DZD."
+    },
+    "security": {
+      "title": "Sécurité enterprise",
+      "desc": "Chiffrement AES-256, JWT, rate limiting. Vos données restent en sécurité."
+    }
+  },
+  "howItWorks": {
+    "badge": "Comment ça marche",
+    "title": "Opérationnel en 3 étapes",
+    "step1": {
+      "title": "Créez votre compte",
+      "desc": "Inscrivez-vous et recevez 25 tokens gratuits pour tester le service."
+    },
+    "step2": {
+      "title": "Connectez Telegram",
+      "desc": "Créez un bot via @BotFather et collez le token — le webhook est configuré automatiquement."
+    },
+    "step3": {
+      "title": "L'IA répond pour vous",
+      "desc": "Votre bot répond 24h/24 dans la langue de vos clients et prend des commandes automatiquement."
+    }
+  },
+  "pricing": {
+    "badge": "Tarification transparente",
+    "title1": "Achetez des tokens,",
+    "title2": "payez ce que vous utilisez",
+    "subtitle": "Pas d'abonnement. Tokens sans expiration. Paiement en Dinars Algériens (DZD).",
+    "trial": "25 tokens offerts à l'inscription",
+    "trialSub": "regardez ce que vous pouvez faire avec 25 tokens",
+    "popular": "★ Le plus populaire",
+    "da": "DA",
+    "tokens": "tokens",
+    "perToken": "DA / token",
+    "start": "Commencer",
+    "legend": {
+      "text": "1 token = 1 message texte",
+      "voice": "2 tokens = 1 message vocal",
+      "predefined": "0 token = réponses prédéfinies",
+      "noExpiry": "Tokens sans expiration"
+    },
+    "plans": {
+      "starter": {
+        "desc": "Parfait pour démarrer",
+        "features": [
+          "500 messages texte",
+          "200 messages vocaux",
+          "Bot Telegram IA",
+          "IA Multilingue (Darija, AR, FR, EN)",
+          "Réponses prédéfinies (0.5 token)"
+        ]
+      },
+      "business": {
+        "desc": "Le plus populaire",
+        "features": [
+          "2 000 messages texte",
+          "1 000 messages vocaux",
+          "Bot Telegram IA",
+          "IA Multilingue",
+          "Réponses prédéfinies (0 token)",
+          "Prise de commandes automatique",
+          "Intégration Shopify & WooCommerce",
+          "Instructions personnalisées",
+          "Heures d'ouverture"
+        ]
+      },
+      "pro": {
+        "desc": "Volume élevé",
+        "features": [
+          "5 000 messages texte",
+          "2 500 messages vocaux",
+          "Tout Business inclus",
+          "Intégration sociétés de livraison",
+          "Confirmation de commande automatique",
+          "Intégration Google Sheets",
+          "Multi-bots Telegram",
+          "Support prioritaire"
+        ]
+      },
+      "agency": {
+        "desc": "Agences & revendeurs",
+        "features": [
+          "15 000 messages texte",
+          "7 500 messages vocaux",
+          "Tout Pro inclus",
+          "Suivi de colis automatique",
+          "Bots illimités",
+          "Support dédié",
+          "Onboarding personnalisé"
+        ]
+      }
+    }
+  },
+  "cta": {
+    "title1": "Prêt à automatiser",
+    "title2": "vos ventes ?",
+    "subtitle": "Rejoignez les boutiques algériennes qui utilisent Yelha pour vendre plus.",
+    "button": "Commencer gratuitement — 25 tokens offerts →"
+  },
+  "footer": {
+    "rights": "© 2025 Yelha. Tous droits réservés.",
+    "privacy": "Confidentialité",
+    "terms": "CGU",
+    "contact": "Contact"
   },
   "auth": {
     "signIn": "Connexion",
@@ -18,20 +158,15 @@
     "forgotPassword": "Mot de passe oublié ?",
     "rememberMe": "Se souvenir de moi",
     "continueWithGoogle": "Continuer avec Google",
-    "continueWithApple": "Continuer avec Apple",
     "acceptTerms": "J'accepte les conditions d'utilisation et la politique de confidentialité",
     "alreadyHaveAccount": "Déjà un compte ?",
     "noAccount": "Pas encore de compte ?",
     "verifyEmail": "Vérifier votre email",
-    "verifyEmailDesc": "Nous avons envoyé un email de vérification à votre adresse. Veuillez vérifier votre boîte de réception.",
+    "verifyEmailDesc": "Nous avons envoyé un email de vérification. Vérifiez votre boîte de réception.",
     "resendEmail": "Renvoyer l'email",
     "resetPassword": "Réinitialiser le mot de passe",
     "newPassword": "Nouveau mot de passe",
-    "passwordStrength": {
-      "weak": "Faible",
-      "medium": "Moyen",
-      "strong": "Fort"
-    },
+    "passwordStrength": { "weak": "Faible", "medium": "Moyen", "strong": "Fort" },
     "twoFactor": {
       "title": "Vérification en deux étapes",
       "desc": "Nous avons envoyé un code à 6 chiffres à votre email. Entrez-le ci-dessous.",
@@ -53,15 +188,46 @@
   "dashboard": {
     "overview": "Vue d'ensemble",
     "connections": "Connexions",
+    "conversations": "Conversations",
+    "botSettings": "Réglage du bot",
+    "products": "Produits",
+    "orders": "Commandes",
+    "delivery": "Livraison",
     "tokens": "Tokens",
     "settings": "Paramètres",
-    "messages": "Messages",
     "analytics": "Analytiques",
     "tokenBalance": "Solde tokens",
     "buyTokens": "Acheter des tokens",
     "activeConnections": "Connexions actives",
     "messagesToday": "Messages aujourd'hui",
-    "totalMessages": "Total des messages"
+    "totalMessages": "Total des messages",
+    "soon": "BIENTÔT"
+  },
+  "orders": {
+    "title": "Commandes",
+    "subtitle": "Toutes les commandes validées par vos bots",
+    "empty": "Aucune commande",
+    "emptyDesc": "Les commandes prises par vos bots apparaîtront ici automatiquement",
+    "status": {
+      "PENDING": "En attente",
+      "CONFIRMED": "Confirmée",
+      "PROCESSING": "En cours",
+      "SHIPPED": "Expédiée",
+      "DELIVERED": "Livrée",
+      "CANCELLED": "Annulée",
+      "RETURNED": "Retour"
+    },
+    "actions": {
+      "confirm": "Confirmer",
+      "cancel": "Annuler",
+      "ship": "Expédier",
+      "deliver": "Livré",
+      "return": "Retour",
+      "requestConfirm": "Demander confirmation",
+      "requesting": "Envoi..."
+    },
+    "confirmRequest": "Le bot va envoyer un message au client pour confirmer sa commande et ses coordonnées.",
+    "totalRevenue": "Chiffre d'affaires total"
   },
   "connections": {
     "title": "Mes connexions",
@@ -82,7 +248,7 @@
       "step1": "Ouvrez Telegram et recherchez @BotFather",
       "step2": "Envoyez la commande /newbot et suivez les instructions",
       "step3": "Copiez le token fourni par BotFather et collez-le ci-dessus",
-      "step4": "Envoyez n importe quel message à votre bot — Yelha capturera automatiquement votre chat ID et nom",
+      "step4": "Envoyez n'importe quel message à votre bot — Yelha capturera automatiquement votre chat ID et nom",
       "youtubeLabel": "Voir le tutoriel vidéo",
       "youtubeUrl": ""
     }
@@ -120,71 +286,31 @@
   },
   "admin": {
     "title": "Panneau d'administration",
+    "overview": "Vue d'ensemble",
     "users": "Utilisateurs",
+    "accounting": "Comptabilité",
     "packages": "Forfaits",
-    "transactions": "Transactions",
+    "promoCodes": "Codes promo",
     "settings": "Paramètres",
     "stats": "Statistiques",
     "totalUsers": "Total utilisateurs",
     "activeUsers": "Utilisateurs actifs",
     "totalRevenue": "Revenu total",
     "totalTokensSold": "Tokens vendus au total",
-    "pendingPayments": "Paiements en attente",
-    "approvePayment": "Approuver le paiement",
-    "rejectPayment": "Rejeter le paiement",
     "grantTokens": "Octroyer des tokens",
-    "revokeTokens": "Révoquer des tokens",
-    "banUser": "Bannir l'utilisateur",
-    "unbanUser": "Débannir l'utilisateur",
-    "makeAdmin": "Nommer administrateur",
-    "removeAdmin": "Retirer les droits admin",
-    "search": "Rechercher des utilisateurs...",
-    "filter": "Filtrer",
+    "banUser": "Bannir",
+    "unbanUser": "Débannir",
+    "search": "Rechercher...",
     "all": "Tous",
     "banned": "Bannis",
     "admins": "Admins",
-    "exportCsv": "Exporter CSV",
-    "package": "Forfait",
-    "amount": "Montant",
-    "date": "Date",
-    "status": "Statut",
-    "pending": "En attente",
-    "approved": "Approuvé",
-    "rejected": "Rejeté",
-    "proof": "Preuve de paiement",
-    "viewProof": "Voir la preuve",
-    "noProof": "Aucune preuve",
-    "confirmApprove": "Êtes-vous sûr de vouloir approuver ce paiement ?",
-    "confirmReject": "Êtes-vous sûr de vouloir rejeter ce paiement ?",
-    "tokenAmount": "Nombre de tokens",
-    "reason": "Raison",
-    "optional": "optionnel",
-    "globalPrompt": "Prompt système global",
-    "savePrompt": "Enregistrer le prompt",
-    "promptSaved": "Prompt enregistré avec succès",
-    "maintenance": "Mode maintenance",
-    "maintenanceDesc": "Quand activé, affiche une page de maintenance à tous les utilisateurs.",
-    "promoCode": "Code promo",
-    "promoCodes": "Codes promo",
-    "createPromo": "Créer un code promo",
-    "discount": "Réduction",
-    "uses": "Utilisations",
-    "maxUses": "Utilisations max",
-    "expires": "Expire le",
-    "active": "Actif",
-    "inactive": "Inactif",
-    "deletePromo": "Supprimer le code promo",
-    "noUsers": "Aucun utilisateur trouvé",
-    "noTransactions": "Aucune transaction trouvée",
-    "noPromos": "Aucun code promo trouvé",
-    "loading": "Chargement...",
     "role": "Rôle",
     "email": "Email",
     "name": "Nom",
     "tokens": "Tokens",
     "joined": "Inscrit le",
-    "lastActive": "Dernière activité",
-    "actions": "Actions"
+    "actions": "Actions",
+    "noUsers": "Aucun utilisateur trouvé"
   },
   "errors": {
     "generic": "Une erreur s'est produite. Veuillez réessayer.",
@@ -202,6 +328,7 @@
     "success": "Succès",
     "error": "Erreur",
     "confirm": "Confirmer",
-    "back": "Retour"
+    "back": "Retour",
+    "soon": "Bientôt"
   }
 }

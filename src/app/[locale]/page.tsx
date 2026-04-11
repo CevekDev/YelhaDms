@@ -2,44 +2,46 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { MynaHero } from '@/components/ui/myna-hero';
 import YelhaPricing from '@/components/ui/yelha-pricing';
-import { Bot, Globe, Shield, Coins, Send, Mic } from 'lucide-react';
+import { Bot, Globe, Shield, Coins, Send, Mic, ShoppingCart } from 'lucide-react';
 
 const ORANGE = '#FF6B2C';
 
-const FEATURES = [
-  {
-    icon: Send,
-    title: 'Telegram Bot',
-    desc: 'Connectez votre bot Telegram en quelques secondes. Répondez automatiquement à tous vos clients.',
-  },
-  {
-    icon: Globe,
-    title: 'IA Multilingue',
-    desc: 'Répond en arabe (MSA & Darija), français, anglais et 100+ langues automatiquement.',
-  },
-  {
-    icon: Mic,
-    title: 'Messages vocaux',
-    desc: 'Transcrit les vocaux via OpenAI Whisper et répond intelligemment en texte.',
-  },
-  {
-    icon: Bot,
-    title: 'Personnalité IA',
-    desc: 'Ajustez la formalité, les emojis, la longueur et le style de réponse.',
-  },
-  {
-    icon: Coins,
-    title: "Paiement à l'usage",
-    desc: '1 token par texte, 2 tokens par vocal. Payez uniquement ce que vous utilisez en DZD.',
-  },
-  {
-    icon: Shield,
-    title: 'Sécurité enterprise',
-    desc: 'Chiffrement AES-256, JWT, rate limiting, CSRF. Vos données restent en sécurité.',
-  },
-];
-
 export default async function LandingPage({ params: { locale } }: { params: { locale: string } }) {
+  const t = await getTranslations({ locale, namespace: undefined });
+
+  const FEATURES = [
+    {
+      icon: Send,
+      title: t('features.telegram.title'),
+      desc: t('features.telegram.desc'),
+    },
+    {
+      icon: Globe,
+      title: t('features.multilang.title'),
+      desc: t('features.multilang.desc'),
+    },
+    {
+      icon: Mic,
+      title: t('features.voice.title'),
+      desc: t('features.voice.desc'),
+    },
+    {
+      icon: ShoppingCart,
+      title: t('features.orders.title'),
+      desc: t('features.orders.desc'),
+    },
+    {
+      icon: Coins,
+      title: t('features.payment.title'),
+      desc: t('features.payment.desc'),
+    },
+    {
+      icon: Shield,
+      title: t('features.security.title'),
+      desc: t('features.security.desc'),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
       {/* ── Hero (dark, animated) ── */}
@@ -53,13 +55,13 @@ export default async function LandingPage({ params: { locale } }: { params: { lo
               className="font-mono text-xs font-semibold uppercase tracking-widest"
               style={{ color: ORANGE }}
             >
-              Fonctionnalités
+              {t('features.badge')}
             </span>
             <h2 className="mt-3 text-4xl font-bold tracking-tight text-gray-900">
-              Tout ce dont vous avez besoin
+              {t('features.title')}
             </h2>
             <p className="mt-4 text-gray-500 max-w-xl mx-auto">
-              Une plateforme complète pour automatiser vos réponses et offrir un service client exceptionnel.
+              {t('features.subtitle')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -94,28 +96,16 @@ export default async function LandingPage({ params: { locale } }: { params: { lo
             className="font-mono text-xs font-semibold uppercase tracking-widest"
             style={{ color: ORANGE }}
           >
-            Comment ça marche
+            {t('howItWorks.badge')}
           </span>
           <h2 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 mb-16">
-            Opérationnel en 3 étapes
+            {t('howItWorks.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {[
-              {
-                step: '01',
-                title: 'Créez votre compte',
-                desc: 'Inscrivez-vous et recevez 25 tokens gratuits pour tester le service.',
-              },
-              {
-                step: '02',
-                title: 'Connectez Telegram',
-                desc: 'Créez un bot via @BotFather et collez le token — le webhook est configuré automatiquement.',
-              },
-              {
-                step: '03',
-                title: "L'IA répond pour vous",
-                desc: 'Votre bot répond 24h/24 dans la langue de vos clients, en suivant vos instructions.',
-              },
+              { step: '01', title: t('howItWorks.step1.title'), desc: t('howItWorks.step1.desc') },
+              { step: '02', title: t('howItWorks.step2.title'), desc: t('howItWorks.step2.desc') },
+              { step: '03', title: t('howItWorks.step3.title'), desc: t('howItWorks.step3.desc') },
             ].map((item) => (
               <div key={item.step} className="flex flex-col items-center">
                 <div
@@ -133,24 +123,24 @@ export default async function LandingPage({ params: { locale } }: { params: { lo
       </section>
 
       {/* ── Pricing (dark) ───────────────────────────────────────────── */}
-      <YelhaPricing />
+      <YelhaPricing locale={locale} />
 
       {/* ── CTA ──────────────────────────────────────────────────────── */}
       <section className="py-24 bg-[#0A0A0A]">
         <div className="container max-w-3xl mx-auto px-6 text-center">
           <h2 className="font-mono text-4xl md:text-5xl font-bold text-white mb-6">
-            Prêt à automatiser <br />
-            <span style={{ color: ORANGE }}>vos messages ?</span>
+            {t('cta.title1')} <br />
+            <span style={{ color: ORANGE }}>{t('cta.title2')}</span>
           </h2>
           <p className="text-white/50 text-base mb-10 font-mono">
-            Rejoignez les entreprises algériennes qui utilisent Yelha pour gagner du temps.
+            {t('cta.subtitle')}
           </p>
           <Link href={`/${locale}/auth/signup`}>
             <button
               className="font-mono text-white text-sm px-8 py-4 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95"
               style={{ background: ORANGE, boxShadow: `0 0 32px ${ORANGE}40` }}
             >
-              Commencer gratuitement — 25 tokens offerts →
+              {t('cta.button')}
             </button>
           </Link>
         </div>
@@ -168,11 +158,17 @@ export default async function LandingPage({ params: { locale } }: { params: { lo
             </div>
             <span className="font-mono font-bold text-white">Yelha</span>
           </div>
-          <p className="font-mono text-xs text-white/30">© 2025 Yelha. Tous droits réservés.</p>
+          <p className="font-mono text-xs text-white/30">{t('footer.rights')}</p>
           <div className="flex gap-5 font-mono text-xs text-white/30">
-            <Link href={`/${locale}/privacy`} className="hover:text-white/60 transition-colors">Confidentialité</Link>
-            <Link href={`/${locale}/terms`} className="hover:text-white/60 transition-colors">CGU</Link>
-            <Link href={`/${locale}/contact`} className="hover:text-white/60 transition-colors">Contact</Link>
+            <Link href={`/${locale}/privacy`} className="hover:text-white/60 transition-colors">
+              {t('footer.privacy')}
+            </Link>
+            <Link href={`/${locale}/terms`} className="hover:text-white/60 transition-colors">
+              {t('footer.terms')}
+            </Link>
+            <Link href={`/${locale}/contact`} className="hover:text-white/60 transition-colors">
+              {t('footer.contact')}
+            </Link>
           </div>
         </div>
       </footer>
