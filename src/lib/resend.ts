@@ -1,11 +1,20 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Resend free plan: must use onboarding@resend.dev as FROM (no custom domain)
-const FROM = 'onboarding@resend.dev';
 const ORANGE = '#FF6B2C';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://yelha-production.up.railway.app';
+
+// Gmail SMTP transporter — set GMAIL_USER + GMAIL_APP_PASSWORD in Railway env vars
+function createTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+}
+
+const FROM = `Yelha <${process.env.GMAIL_USER}>`;
 
 function baseTemplate(content: string) {
   return `
@@ -22,6 +31,11 @@ function baseTemplate(content: string) {
   `;
 }
 
+async function sendMail(to: string, subject: string, html: string) {
+  const transporter = createTransporter();
+  await transporter.sendMail({ from: FROM, to, subject, html });
+}
+
 // Legacy link-based verification (kept for backwards compat)
 export async function sendVerificationEmail(
   email: string,
@@ -32,7 +46,7 @@ export async function sendVerificationEmail(
   await sendVerificationCodeEmail(email, name, token, locale);
 }
 
-// New: 6-digit code verification email
+// 6-digit code verification email
 export async function sendVerificationCodeEmail(
   email: string,
   name: string,
@@ -66,12 +80,7 @@ export async function sendVerificationCodeEmail(
     <p style="color:#999;font-size:13px;">${expiry} Ne partagez ce code avec personne.</p>
   `;
 
-  await resend.emails.send({
-    from: FROM,
-    to: email,
-    subject: subjects[locale] || subjects.fr,
-    html: baseTemplate(content),
-  });
+  await sendMail(email, subjects[locale] || subjects.fr, baseTemplate(content));
 }
 
 // Admin gift notification email
@@ -100,12 +109,7 @@ export async function sendAdminGiftEmail(
     </div>
   `;
 
-  await resend.emails.send({
-    from: FROM,
-    to: email,
-    subject: `[Yelha] 🎁 ${tokens.toLocaleString()} tokens offerts par Yelha`,
-    html: baseTemplate(content),
-  });
+  await sendMail(email, `[Yelha] 🎁 ${tokens.toLocaleString()} tokens offerts par Yelha`, baseTemplate(content));
 }
 
 export async function sendTokenPurchaseEmail(
@@ -133,12 +137,7 @@ export async function sendTokenPurchaseEmail(
     </div>
   `;
 
-  await resend.emails.send({
-    from: FROM,
-    to: email,
-    subject: `[Yelha] Confirmation d'achat — ${tokens.toLocaleString()} tokens`,
-    html: baseTemplate(content),
-  });
+  await sendMail(email, `[Yelha] Confirmation d'achat — ${tokens.toLocaleString()} tokens`, baseTemplate(content));
 }
 
 // Partner notification email
@@ -182,12 +181,7 @@ export async function sendPartnerEmail(
     <p style="color:#999;font-size:13px;">Merci de votre confiance. Bienvenue dans le programme partenaire Yelha !</p>
   `;
 
-  await resend.emails.send({
-    from: FROM,
-    to: email,
-    subject: `[Yelha] 🤝 Vous êtes maintenant Partenaire Yelha !`,
-    html: baseTemplate(content),
-  });
+  await sendMail(email, `[Yelha] 🤝 Vous êtes maintenant Partenaire Yelha !`, baseTemplate(content));
 }
 
 export async function sendPasswordResetEmail(
@@ -226,10 +220,5 @@ export async function sendPasswordResetEmail(
     </p>
   `;
 
-  await resend.emails.send({
-    from: FROM,
-    to: email,
-    subject: subjects[locale] || subjects.fr,
-    html: baseTemplate(content),
-  });
+  await sendMail(email, subjects[locale] || subjects.fr, baseTemplate(content));
 }
