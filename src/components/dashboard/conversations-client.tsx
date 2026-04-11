@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { MessageSquare, Bot, Search, User, Send, Plug, RefreshCw, MapPin, FileText, Edit2, Check, X, AlertTriangle, PauseCircle, PlayCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -55,6 +56,7 @@ type ContactContext = {
 };
 
 export default function ConversationsClient({ connections }: { connections: Connection[] }) {
+  const t = useTranslations('conversations');
   const params = useParams();
   const locale = params.locale as string;
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(
@@ -181,9 +183,9 @@ export default function ConversationsClient({ connections }: { connections: Conn
         >
           <Bot className="w-8 h-8" style={{ color: ORANGE }} />
         </div>
-        <h3 className="font-mono font-bold text-white text-lg mb-2">Aucun bot connecté</h3>
+        <h3 className="font-mono font-bold text-white text-lg mb-2">{t('noBotTitle')}</h3>
         <p className="font-mono text-sm text-white/40 mb-6">
-          Connectez votre premier bot Telegram pour voir les conversations ici
+          {t('noBotDesc')}
         </p>
         <Link
           href={`/${locale}/dashboard/connections`}
@@ -191,7 +193,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
           style={{ background: ORANGE }}
         >
           <Plug className="w-4 h-4" />
-          Connecter un bot
+          {t('connectBot')}
         </Link>
       </div>
     );
@@ -202,10 +204,10 @@ export default function ConversationsClient({ connections }: { connections: Conn
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Bots actifs', value: connections.length },
-          { label: 'Conversations', value: totalConvs },
+          { label: t('stats.activeBots'),    value: connections.length },
+          { label: t('stats.conversations'), value: totalConvs },
           {
-            label: "Aujourd'hui",
+            label: t('stats.today'),
             value: connections
               .flatMap((c) => c.conversations)
               .filter(
@@ -228,7 +230,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
         {/* Bot selector */}
         <div className="col-span-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] flex flex-col overflow-hidden">
           <div className="p-3 border-b border-white/[0.06]">
-            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-wider">Bots</p>
+            <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-wider">{t('bots')}</p>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {connections.map((conn) => (
@@ -281,7 +283,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher..."
+                placeholder={t('search')}
                 className="w-full pl-8 pr-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
               />
             </div>
@@ -290,7 +292,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
             {filteredConvs.length === 0 ? (
               <div className="p-8 text-center">
                 <MessageSquare className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                <p className="font-mono text-xs text-white/20">Aucune conversation</p>
+                <p className="font-mono text-xs text-white/20">{t('noConversation')}</p>
               </div>
             ) : (
               filteredConvs.map((conv) => {
@@ -330,7 +332,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
                         </div>
                       </div>
                       {state.needsHelp && (
-                        <p className="font-mono text-[10px] text-red-400 mb-0.5">⚠️ Besoin d'aide humaine</p>
+                        <p className="font-mono text-[10px] text-red-400 mb-0.5">⚠️ {t('needsHelp')}</p>
                       )}
                       {lastMsg && (
                         <p className="font-mono text-[11px] text-white/30 truncate">
@@ -381,10 +383,9 @@ export default function ConversationsClient({ connections }: { connections: Conn
                       onClick={() => selectedConv && handleResolveHelp(selectedConv)}
                       disabled={isPending}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold text-white bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 transition-all"
-                      title="Marquer comme résolu"
                     >
                       <AlertTriangle className="w-3 h-3 text-red-400" />
-                      Résoudre
+                      {t('resolve')}
                     </button>
                   )}
                   {/* Suspend conv */}
@@ -394,7 +395,6 @@ export default function ConversationsClient({ connections }: { connections: Conn
                       disabled={isPending}
                       className="p-1.5 rounded-lg transition-all text-white/30 hover:bg-white/[0.06]"
                       style={getConvState(selectedConv).isSuspended ? { color: '#F59E0B' } : {}}
-                      title={getConvState(selectedConv).isSuspended ? 'Reprendre la conversation' : 'Suspendre la conversation'}
                     >
                       {getConvState(selectedConv).isSuspended
                         ? <PlayCircle className="w-4 h-4" />
@@ -405,14 +405,12 @@ export default function ConversationsClient({ connections }: { connections: Conn
                     onClick={() => setShowContextPanel(!showContextPanel)}
                     className={`p-1.5 rounded-lg transition-all ${showContextPanel ? 'text-white' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'}`}
                     style={showContextPanel ? { background: `${ORANGE}20`, color: ORANGE } : {}}
-                    title="Profil client"
                   >
                     <FileText className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => selectedConv && selectedConnection && loadMessages(selectedConv.id, selectedConnection.id, selectedConv.contactId)}
                     className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-all"
-                    title="Rafraîchir"
                   >
                     <RefreshCw className={`w-4 h-4 ${loadingMessages ? 'animate-spin' : ''}`} />
                   </button>
@@ -431,7 +429,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="font-mono text-xs text-white/20">Aucun message</p>
+                      <p className="font-mono text-xs text-white/20">{t('noMessages')}</p>
                     </div>
                   ) : (
                     messages.map((msg) => (
@@ -452,10 +450,10 @@ export default function ConversationsClient({ connections }: { connections: Conn
                           }
                         >
                           {msg.type === 'voice' && (
-                            <p className="font-mono text-[10px] text-white/30 mb-1">🎤 Vocal transcrit</p>
+                            <p className="font-mono text-[10px] text-white/30 mb-1">🎤 {t('voiceTranscribed')}</p>
                           )}
                           {msg.type === 'image' && (
-                            <p className="font-mono text-[10px] text-white/30 mb-1">🖼️ Image</p>
+                            <p className="font-mono text-[10px] text-white/30 mb-1">🖼️ {t('image')}</p>
                           )}
                           <p className="font-mono text-xs leading-relaxed text-white/80">{msg.content}</p>
                           <p className="font-mono text-[9px] text-white/20 mt-1 text-right">
@@ -476,7 +474,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
                   <div className="w-52 border-l border-white/[0.06] p-3 overflow-y-auto flex-shrink-0">
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-mono text-[10px] font-semibold text-white/30 uppercase tracking-wider">
-                        Profil client
+                        {t('clientProfile')}
                       </p>
                       {!editingContext ? (
                         <button
@@ -506,20 +504,20 @@ export default function ConversationsClient({ connections }: { connections: Conn
 
                     <div className="space-y-3">
                       <div>
-                        <p className="font-mono text-[9px] text-white/20 uppercase mb-1">Nom</p>
+                        <p className="font-mono text-[9px] text-white/20 uppercase mb-1">{t('name')}</p>
                         <p className="font-mono text-xs text-white/60">
                           {contactCtx?.contactName || selectedConv.contactName || selectedConv.contactId}
                         </p>
                       </div>
 
                       <div>
-                        <p className="font-mono text-[9px] text-white/20 uppercase mb-1">Wilaya</p>
+                        <p className="font-mono text-[9px] text-white/20 uppercase mb-1">{t('wilaya')}</p>
                         {editingContext ? (
                           <input
                             type="text"
                             value={editWilaya}
                             onChange={(e) => setEditWilaya(e.target.value)}
-                            placeholder="Ex: Alger"
+                            placeholder={t('wilaYaPlaceholder')}
                             className="w-full px-2 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[11px] font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
                           />
                         ) : (
@@ -530,12 +528,12 @@ export default function ConversationsClient({ connections }: { connections: Conn
                       </div>
 
                       <div>
-                        <p className="font-mono text-[9px] text-white/20 uppercase mb-1">Notes</p>
+                        <p className="font-mono text-[9px] text-white/20 uppercase mb-1">{t('notes')}</p>
                         {editingContext ? (
                           <textarea
                             value={editNotes}
                             onChange={(e) => setEditNotes(e.target.value)}
-                            placeholder="Infos utiles sur ce client..."
+                            placeholder={t('notesPlaceholder')}
                             rows={4}
                             className="w-full px-2 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[11px] font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 resize-none"
                           />
@@ -548,7 +546,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
 
                       {contactCtx?.lastSeenAt && (
                         <div>
-                          <p className="font-mono text-[9px] text-white/20 uppercase mb-1">Dernière activité</p>
+                          <p className="font-mono text-[9px] text-white/20 uppercase mb-1">{t('lastSeen')}</p>
                           <p className="font-mono text-[10px] text-white/30">
                             {formatRelative(new Date(contactCtx.lastSeenAt))}
                           </p>
@@ -564,7 +562,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
                 <div className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-4 py-2.5">
                   <Send className="w-4 h-4 text-white/10" />
                   <span className="font-mono text-xs text-white/20">
-                    Vue lecture seule — les clients répondent via {selectedConnection?.platform === 'TELEGRAM' ? 'Telegram' : 'WhatsApp'}
+                    {t('readOnly', { platform: selectedConnection?.platform === 'TELEGRAM' ? 'Telegram' : 'WhatsApp' })}
                   </span>
                 </div>
               </div>
@@ -573,7 +571,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <MessageSquare className="w-10 h-10 text-white/10 mx-auto mb-3" />
-                <p className="font-mono text-sm text-white/20">Sélectionnez une conversation</p>
+                <p className="font-mono text-sm text-white/20">{t('selectConversation')}</p>
               </div>
             </div>
           )}

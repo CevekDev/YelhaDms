@@ -14,28 +14,6 @@ import {
   logCost,
 } from '@/lib/messages';
 
-// Détection langue arabe/darija → réponse en arabe classique
-const LANGUAGE_INSTRUCTION = `
-RÈGLE ABSOLUE DE LANGUE :
-- Si le client écrit en arabe (أي لهجة) ou en darija algérienne → réponds TOUJOURS en arabe classique (فصحى).
-- Si le client écrit en français → réponds en français.
-- Si le client écrit en anglais → réponds en anglais.
-- Ne mélange jamais les langues dans une même réponse.
-`;
-
-// System prompt strict commerce
-const COMMERCE_INSTRUCTION = `
-RÔLE STRICT : Tu es l'assistant IA d'une boutique e-commerce. Tu ne réponds QU'AUX questions liées à :
-- Les produits de la boutique (prix, disponibilité, caractéristiques, tailles, couleurs)
-- Les commandes (suivi, délai, confirmation)
-- La livraison (wilaya, frais, délai)
-- Les retours et remboursements
-- Les promotions et réductions
-- Les informations de contact de la boutique
-
-Si le client pose une question hors de ces sujets (politique, sport, blagues, demandes personnelles, etc.), réponds poliment que tu es uniquement là pour aider avec les achats et les produits.
-Réponds de manière professionnelle et courte (2-4 phrases maximum sauf si une liste est nécessaire).
-`;
 
 export async function POST(
   req: NextRequest,
@@ -178,10 +156,12 @@ export async function POST(
     });
 
     const history = await getRecentHistory(conversation.id);
+    const isFirstMessage = history.length === 0;
 
     const systemPrompt = await buildTelegramSystemPrompt(
       connection,
-      buildContactContextString(contactCtx)
+      buildContactContextString(contactCtx),
+      isFirstMessage
     );
 
     const aiMessages = [
@@ -191,23 +171,35 @@ export async function POST(
 
     const rawResponse = await callDeepSeek(aiMessages, systemPrompt);
 
-    // Détecter si l'IA a marqué le message comme hors-sujet (spam)
+    // ── Hors sujet → suspendre la conversation + needsHelp ───────────────
     if (rawResponse.startsWith('[HORS_SUJET]')) {
       responseText = rawResponse.replace('[HORS_SUJET]', '').trim();
-      // Incrémenter score spam
-      const blocked = await handleSpam(conversation.id);
-      if (blocked) {
-        // Enregistrer le message sans réponse et notifier
-        await saveInboundOnly({ conversationId: conversation.id, content: inboundContent, type: messageType });
-        await upsertContactContext(connection.id, contactId, { contactName });
-        // On répond une dernière fois puis on bloque
-        if (responseText) await sendTelegramMessage(token, chatId, responseText);
-        return NextResponse.json({ ok: true });
+      // Marquer comme needsHelp + suspendre cette conversation
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { needsHelp: true, isSuspended: true },
+      });
+      await saveInboundOnly({ conversationId: conversation.id, content: inboundContent, type: messageType });
+      await upsertContactContext(connection.id, contactId, { contactName });
+      if (responseText) await sendTelegramMessage(token, chatId, responseText);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── Commande confirmée → extraire JSON et sauvegarder ────────────────
+    const orderMatch = rawResponse.match(/\[COMMANDE_CONFIRMEE:(\{[\s\S]*?\})\]/);
+    if (orderMatch) {
+      responseText = rawResponse.replace(/\[COMMANDE_CONFIRMEE:[\s\S]*?\]/, '').trim();
+      try {
+        const orderData = JSON.parse(orderMatch[1]);
+        await saveOrderFromBot(connection, contactId, contactName, orderData);
+      } catch (e) {
+        console.error('[Telegram] Order parse error', e);
       }
     } else {
       responseText = rawResponse;
-      logCost(user.id, messageType === 'voice' ? 'deepseek_voice' : 'deepseek_text');
     }
+
+    logCost(user.id, messageType === 'voice' ? 'deepseek_voice' : 'deepseek_text');
   }
 
   if (!responseText) return NextResponse.json({ ok: true });
@@ -260,7 +252,7 @@ async function sendTelegramMessage(token: string, chatId: number, text: string) 
   });
 }
 
-async function buildTelegramSystemPrompt(connection: any, contactContext: string): Promise<string> {
+async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean): Promise<string> {
   const predefinedStr = connection.predefinedMessages
     .map((m: any) => `Mots-clés: ${m.keywords.join(', ')}\nRéponse: ${m.response}`)
     .join('\n---\n');
@@ -279,24 +271,73 @@ async function buildTelegramSystemPrompt(connection: any, contactContext: string
     ? products.map((p: any) =>
         `• ${p.name}${p.price ? ` — ${p.price} DA` : ''}${p.stock !== null ? ` (Stock: ${p.stock})` : ''}${p.description ? `\n  ${p.description}` : ''}`
       ).join('\n')
-    : 'Aucun produit configuré pour le moment.';
+    : 'Aucun produit configuré.';
 
-  let prompt = buildSystemPrompt({
+  const prompt = buildSystemPrompt({
     botName: connection.botName || 'Assistant',
     businessName: connection.businessName || '',
     botPersonality: connection.botPersonality,
-    predefinedResponses: predefinedStr,
-    customInstructions: connection.customInstructions || '',
+    predefinedResponses: predefinedStr || 'Aucune',
+    customInstructions: connection.customInstructions || 'Aucune',
     globalPrompt: GLOBAL_SYSTEM_PROMPT,
     contactContext,
     detailResponses: detailStr,
+    isFirstMessage,
   });
 
-  prompt += `\n\nCATALOGUE PRODUITS DE LA BOUTIQUE :\n${productsStr}\n\nRéponds aux questions sur ces produits avec les informations ci-dessus. Ne propose jamais de produits qui ne sont pas dans cette liste.`;
-  prompt += LANGUAGE_INSTRUCTION;
-  prompt += COMMERCE_INSTRUCTION;
-  prompt += `\nSi le message est hors-sujet commerce, commence ta réponse par [HORS_SUJET] puis donne une réponse polie courte.`;
+  return prompt + `\n\n══════════════════════════════════════
+CATALOGUE PRODUITS DE LA BOUTIQUE
+══════════════════════════════════════
+${productsStr}
 
-  return prompt;
+Important : utilise UNIQUEMENT les produits listés ci-dessus. Ne mentionne jamais un produit absent de cette liste.`;
+}
+
+async function saveOrderFromBot(connection: any, contactId: string, contactName: string | null, data: any) {
+  // Find product IDs by name
+  const allProducts = await prisma.product.findMany({
+    where: { userId: connection.userId, isActive: true },
+    select: { id: true, name: true, price: true },
+  });
+
+  const items = (data.produits || []).map((item: any) => {
+    const found = allProducts.find((p) =>
+      p.name.toLowerCase().includes(item.nom?.toLowerCase() || '') ||
+      item.nom?.toLowerCase().includes(p.name.toLowerCase())
+    );
+    return {
+      name: item.nom || 'Produit',
+      quantity: item.quantite || 1,
+      price: found?.price || item.prix || 0,
+      productId: found?.id || null,
+    };
+  });
+
+  const total = items.reduce((s: number, i: any) => s + i.price * i.quantity, 0);
+
+  const fullName = [data.prenom, data.nom].filter(Boolean).join(' ') || contactName || 'Client';
+  const notes = `Wilaya: ${data.wilaya || ''} — Commune: ${data.commune || ''}`;
+
+  const order = await prisma.order.create({
+    data: {
+      userId: connection.userId,
+      connectionId: connection.id,
+      contactName: fullName,
+      contactId,
+      contactPhone: data.telephone || null,
+      totalAmount: total,
+      notes,
+      items: {
+        create: items.map((i: any) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: i.price,
+          ...(i.productId ? { productId: i.productId } : {}),
+        })),
+      },
+    },
+  });
+
+  console.log(`[Telegram] Order saved: ${order.id} for ${fullName}`);
 }
 

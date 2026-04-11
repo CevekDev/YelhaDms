@@ -2,44 +2,20 @@
 
 import { useState, useTransition } from 'react';
 import {
-  Bot, MessageSquare, Zap, Plus, Trash2, Edit2, X, Check,
+  Bot, Plus, Trash2, Edit2, X, Check,
   Sparkles, AlertCircle, Settings2, Layers, PauseCircle, PlayCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 const ORANGE = '#FF6B2C';
 
-const PERSONALITIES = [
-  {
-    id: 'professional',
-    label: 'Professionnel',
-    desc: 'Formel, courtois et précis',
-    emoji: '💼',
-  },
-  {
-    id: 'friendly',
-    label: 'Amical',
-    desc: 'Chaleureux, proche et accessible',
-    emoji: '😊',
-  },
-  {
-    id: 'commercial',
-    label: 'Commercial',
-    desc: 'Persuasif et orienté vente',
-    emoji: '💰',
-  },
-  {
-    id: 'formal',
-    label: 'Formel',
-    desc: 'Institutionnel et sérieux',
-    emoji: '🏛️',
-  },
-  {
-    id: 'casual',
-    label: 'Décontracté',
-    desc: 'Naturel, simple et sympa',
-    emoji: '✌️',
-  },
+const PERSONALITY_IDS = [
+  { id: 'professional', emoji: '💼' },
+  { id: 'friendly', emoji: '😊' },
+  { id: 'commercial', emoji: '💰' },
+  { id: 'formal', emoji: '🏛️' },
+  { id: 'casual', emoji: '✌️' },
 ];
 
 const PLATFORMS = [
@@ -48,6 +24,7 @@ const PLATFORMS = [
   { id: 'INSTAGRAM', label: 'Instagram', emoji: '📸', available: false },
   { id: 'MESSENGER', label: 'Messenger', emoji: '💙', available: false },
 ];
+
 
 type PredefinedMessage = {
   id: string;
@@ -77,16 +54,10 @@ type Connection = {
   detailResponses: DetailResponse[];
 };
 
-type Tab = 'general' | 'personality' | 'predefined' | 'details';
-
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'general', label: 'Général', icon: Settings2 },
-  { id: 'personality', label: 'Personnalité', icon: Sparkles },
-  { id: 'predefined', label: 'Q&R Prédéfinies', icon: MessageSquare },
-  { id: 'details', label: 'Réponses détaillées', icon: Layers },
-];
+type Tab = 'general' | 'personality' | 'details';
 
 export default function BotSettingsClient({ connections }: { connections: Connection[] }) {
+  const t = useTranslations('botConfig');
   const router = useRouter();
   const [selectedConn, setSelectedConn] = useState<Connection | null>(connections[0] || null);
   const [tab, setTab] = useState<Tab>('general');
@@ -108,14 +79,6 @@ export default function BotSettingsClient({ connections }: { connections: Connec
     (selectedConn?.botPersonality as any)?.custom || ''
   );
 
-  // Predefined messages
-  const [messages, setMessages] = useState<PredefinedMessage[]>(
-    selectedConn?.predefinedMessages || []
-  );
-  const [showMsgForm, setShowMsgForm] = useState(false);
-  const [editMsg, setEditMsg] = useState<PredefinedMessage | null>(null);
-  const [msgForm, setMsgForm] = useState({ keywords: '', response: '' });
-
   // Detail responses
   const [details, setDetails] = useState<DetailResponse[]>(
     selectedConn?.detailResponses || []
@@ -131,7 +94,6 @@ export default function BotSettingsClient({ connections }: { connections: Connec
     setCustomInstructions(conn.customInstructions || '');
     setPersonality((conn.botPersonality as any)?.preset || 'professional');
     setCustomPersonality((conn.botPersonality as any)?.custom || '');
-    setMessages(conn.predefinedMessages);
     setDetails(conn.detailResponses);
     setIsSuspended(conn.isSuspended);
     setError('');
@@ -177,54 +139,6 @@ export default function BotSettingsClient({ connections }: { connections: Connec
     });
   };
 
-  // Predefined message handlers
-  const openMsgForm = (msg?: PredefinedMessage) => {
-    if (msg) {
-      setEditMsg(msg);
-      setMsgForm({ keywords: msg.keywords.join(', '), response: msg.response });
-    } else {
-      setEditMsg(null);
-      setMsgForm({ keywords: '', response: '' });
-    }
-    setShowMsgForm(true);
-  };
-
-  const handleSaveMsg = () => {
-    if (!selectedConn) return;
-    if (!msgForm.keywords.trim() || !msgForm.response.trim()) return;
-
-    startTransition(async () => {
-      const keywords = msgForm.keywords.split(',').map((k) => k.trim()).filter(Boolean);
-      const body = {
-        connectionId: selectedConn.id,
-        keywords,
-        response: msgForm.response.trim(),
-        ...(editMsg ? { id: editMsg.id } : {}),
-      };
-      const res = await fetch('/api/predefined-messages', {
-        method: editMsg ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) return;
-      const saved = await res.json();
-      if (editMsg) {
-        setMessages((prev) => prev.map((m) => (m.id === saved.id ? saved : m)));
-      } else {
-        setMessages((prev) => [...prev, saved]);
-      }
-      setShowMsgForm(false);
-    });
-  };
-
-  const handleDeleteMsg = (id: string) => {
-    if (!confirm('Supprimer cette réponse ?')) return;
-    startTransition(async () => {
-      await fetch(`/api/predefined-messages?id=${id}`, { method: 'DELETE' });
-      setMessages((prev) => prev.filter((m) => m.id !== id));
-    });
-  };
-
   // Detail response handlers
   const openDetailForm = (d?: DetailResponse) => {
     if (d) {
@@ -265,12 +179,18 @@ export default function BotSettingsClient({ connections }: { connections: Connec
   };
 
   const handleDeleteDetail = (id: string) => {
-    if (!confirm('Supprimer cette réponse ?')) return;
+    if (!confirm(t('detailDelete'))) return;
     startTransition(async () => {
       await fetch(`/api/detail-responses?id=${id}`, { method: 'DELETE' });
       setDetails((prev) => prev.filter((d) => d.id !== id));
     });
   };
+
+  const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: 'general', label: t('tabs.general'), icon: Settings2 },
+    { id: 'personality', label: t('tabs.personality'), icon: Sparkles },
+    { id: 'details', label: t('tabs.details'), icon: Layers },
+  ];
 
   if (connections.length === 0) {
     return (
@@ -281,10 +201,8 @@ export default function BotSettingsClient({ connections }: { connections: Connec
         >
           <Bot className="w-8 h-8" style={{ color: ORANGE }} />
         </div>
-        <h3 className="font-mono font-bold text-white text-lg mb-2">Aucun bot connecté</h3>
-        <p className="font-mono text-sm text-white/40 mb-6">
-          Connectez d&apos;abord un bot Telegram pour accéder aux réglages
-        </p>
+        <h3 className="font-mono font-bold text-white text-lg mb-2">{t('noBotConnected')}</h3>
+        <p className="font-mono text-sm text-white/40 mb-6">{t('noBotConnectedDesc')}</p>
       </div>
     );
   }
@@ -293,7 +211,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
     <div className="space-y-5">
       {/* Platform selector */}
       <div>
-        <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">Plateforme</p>
+        <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">{t('platform')}</p>
         <div className="flex gap-3 flex-wrap">
           {PLATFORMS.map((p) => (
             <div key={p.id} className="relative group">
@@ -315,7 +233,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
                 <span className="font-semibold">{p.label}</span>
                 {!p.available && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/20 border border-white/[0.06]">
-                    BIENTÔT
+                    {t('soonLabel')}
                   </span>
                 )}
                 {p.available && selectedConn?.platform === p.id && (
@@ -330,7 +248,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
       {/* Bot selector (if multiple bots) */}
       {connections.length > 1 && (
         <div>
-          <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">Bot actif</p>
+          <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">{t('activePlatform')}</p>
           <div className="flex gap-2 flex-wrap">
             {connections.map((c) => (
               <button
@@ -369,12 +287,10 @@ export default function BotSettingsClient({ connections }: { connections: Connec
               : <PlayCircle className="w-5 h-5 text-green-400 flex-shrink-0" />}
             <div>
               <p className="font-mono text-sm font-semibold text-white">
-                {isSuspended ? 'Bot suspendu' : 'Bot actif'}
+                {isSuspended ? t('botSuspended') : t('botActive')}
               </p>
               <p className="font-mono text-xs text-white/40">
-                {isSuspended
-                  ? 'Le bot ne répond plus aux messages — réactivez-le quand vous êtes prêt'
-                  : 'Le bot répond automatiquement aux messages de vos clients'}
+                {isSuspended ? t('botSuspendedDesc') : t('botActiveDesc')}
               </p>
             </div>
           </div>
@@ -420,7 +336,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block font-mono text-xs text-white/50 mb-1.5">
-                Nom du bot <span className="text-white/20">(vu par vos clients)</span>
+                {t('botNameLabel')} <span className="text-white/20">{t('botNameHint')}</span>
               </label>
               <input
                 type="text"
@@ -431,7 +347,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
               />
             </div>
             <div>
-              <label className="block font-mono text-xs text-white/50 mb-1.5">Nom de l'entreprise</label>
+              <label className="block font-mono text-xs text-white/50 mb-1.5">{t('businessNameLabel')}</label>
               <input
                 type="text"
                 value={businessName}
@@ -444,13 +360,13 @@ export default function BotSettingsClient({ connections }: { connections: Connec
 
           <div>
             <label className="block font-mono text-xs text-white/50 mb-1.5">
-              Instructions personnalisées{' '}
-              <span className="text-white/20">(à l'impératif — comment le bot doit se comporter)</span>
+              {t('customInstructionsLabel')}{' '}
+              <span className="text-white/20">{t('customInstructionsHint')}</span>
             </label>
             <textarea
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="Ex: Réponds toujours en darija algérienne. Si le client demande le prix, donne le prix exact. Ne propose jamais de remise. Demande toujours le nom et la wilaya avant de confirmer une commande..."
+              placeholder={t('customInstructionsPlaceholder')}
               rows={5}
               className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 resize-none leading-relaxed"
             />
@@ -475,12 +391,12 @@ export default function BotSettingsClient({ connections }: { connections: Connec
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              Enregistrer
+              {t('save')}
             </button>
             {saveSuccess && (
               <span className="font-mono text-sm text-green-400 flex items-center gap-1.5">
                 <Check className="w-4 h-4" />
-                Sauvegardé !
+                {t('saved')}
               </span>
             )}
           </div>
@@ -492,10 +408,10 @@ export default function BotSettingsClient({ connections }: { connections: Connec
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
           <div>
             <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-4">
-              Personnalité prédéfinie
+              {t('personalityPreset')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {PERSONALITIES.map((p) => (
+              {PERSONALITY_IDS.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setPersonality(p.id)}
@@ -516,9 +432,11 @@ export default function BotSettingsClient({ connections }: { connections: Connec
                       className="font-mono text-sm font-semibold"
                       style={personality === p.id ? { color: ORANGE } : { color: 'rgba(255,255,255,0.8)' }}
                     >
-                      {p.label}
+                      {t(`personality${p.id.charAt(0).toUpperCase()}${p.id.slice(1)}` as any)}
                     </p>
-                    <p className="font-mono text-xs text-white/30 mt-0.5">{p.desc}</p>
+                    <p className="font-mono text-xs text-white/30 mt-0.5">
+                      {t(`personality${p.id.charAt(0).toUpperCase()}${p.id.slice(1)}Desc` as any)}
+                    </p>
                   </div>
                   {personality === p.id && (
                     <Check className="w-4 h-4 ml-auto flex-shrink-0 mt-0.5" style={{ color: ORANGE }} />
@@ -530,13 +448,13 @@ export default function BotSettingsClient({ connections }: { connections: Connec
 
           <div>
             <label className="block font-mono text-xs text-white/50 mb-1.5">
-              Personnalité personnalisée{' '}
-              <span className="text-white/20">(optionnel — remplace la sélection ci-dessus)</span>
+              {t('personalityCustom')}{' '}
+              <span className="text-white/20">{t('personalityCustomHint')}</span>
             </label>
             <textarea
               value={customPersonality}
               onChange={(e) => setCustomPersonality(e.target.value)}
-              placeholder="Ex: Le bot parle toujours en Darija algérienne, utilise des expressions familières, reste très sympa et peut faire des blagues légères..."
+              placeholder={t('personalityCustomPlaceholder')}
               rows={4}
               className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 resize-none leading-relaxed"
             />
@@ -554,95 +472,18 @@ export default function BotSettingsClient({ connections }: { connections: Connec
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              Enregistrer
+              {t('save')}
             </button>
             {saveSuccess && (
               <span className="font-mono text-sm text-green-400 flex items-center gap-1.5">
                 <Check className="w-4 h-4" />
-                Sauvegardé !
+                {t('saved')}
               </span>
             )}
           </div>
         </div>
       )}
 
-      {/* --- Tab: Predefined Q&A --- */}
-      {tab === 'predefined' && (
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 flex items-start gap-3">
-            <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: ORANGE }} />
-            <div>
-              <p className="font-mono text-sm text-white font-semibold mb-0.5">
-                Questions–Réponses prédéfinies
-              </p>
-              <p className="font-mono text-xs text-white/40 leading-relaxed">
-                Définissez des mots-clés et une réponse exacte. Quand un client envoie un message
-                contenant ces mots-clés, le bot répond directement <strong className="text-white/60">sans utiliser de tokens</strong>.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              onClick={() => openMsgForm()}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-mono text-sm font-semibold text-white hover:opacity-90 transition-all"
-              style={{ background: ORANGE }}
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter une Q&R
-            </button>
-          </div>
-
-          {messages.length === 0 ? (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-10 text-center">
-              <MessageSquare className="w-8 h-8 text-white/10 mx-auto mb-3" />
-              <p className="font-mono text-sm text-white/30">Aucune réponse prédéfinie</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 flex items-start gap-4"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {msg.keywords.map((kw) => (
-                        <span
-                          key={kw}
-                          className="text-xs font-mono px-2 py-0.5 rounded-full border"
-                          style={{
-                            color: ORANGE,
-                            borderColor: `${ORANGE}40`,
-                            background: `${ORANGE}10`,
-                          }}
-                        >
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="font-mono text-sm text-white/70 leading-relaxed">{msg.response}</p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => openMsgForm(msg)}
-                      className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-all"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteMsg(msg.id)}
-                      className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* --- Tab: Detail Responses --- */}
       {tab === 'details' && (
@@ -651,12 +492,10 @@ export default function BotSettingsClient({ connections }: { connections: Connec
             <Layers className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: ORANGE }} />
             <div>
               <p className="font-mono text-sm text-white font-semibold mb-0.5">
-                Réponses détaillées contextuelles
+                {t('detailsTitle')}
               </p>
               <p className="font-mono text-xs text-white/40 leading-relaxed">
-                Définissez un type de question et une réponse type. Le bot adapte toujours cette
-                réponse au contexte et à la personnalité configurée, mais reste fidèle à votre
-                contenu. Idéal pour : prix de livraison, politique de retour, horaires, etc.
+                {t('detailsDesc')}
               </p>
             </div>
           </div>
@@ -668,14 +507,14 @@ export default function BotSettingsClient({ connections }: { connections: Connec
               style={{ background: ORANGE }}
             >
               <Plus className="w-4 h-4" />
-              Ajouter une réponse
+              {t('detailAdd')}
             </button>
           </div>
 
           {details.length === 0 ? (
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-10 text-center">
               <Layers className="w-8 h-8 text-white/10 mx-auto mb-3" />
-              <p className="font-mono text-sm text-white/30">Aucune réponse détaillée</p>
+              <p className="font-mono text-sm text-white/30">{t('detailsTitle')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -686,7 +525,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-mono text-xs font-semibold mb-1.5" style={{ color: ORANGE }}>
-                      Type : {d.questionType}
+                      {t('detailQuestionType')} : {d.questionType}
                     </p>
                     <p className="font-mono text-sm text-white/70 leading-relaxed">{d.response}</p>
                   </div>
@@ -711,81 +550,6 @@ export default function BotSettingsClient({ connections }: { connections: Connec
         </div>
       )}
 
-      {/* Modal: Predefined message form */}
-      {showMsgForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowMsgForm(false)}
-          />
-          <div className="relative w-full max-w-lg bg-[#0D0D10] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-mono font-bold text-white text-lg">
-                {editMsg ? 'Modifier la Q&R' : 'Nouvelle Q&R prédéfinie'}
-              </h2>
-              <button
-                onClick={() => setShowMsgForm(false)}
-                className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06]"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  Mots-clés <span className="text-white/20">(séparés par des virgules)</span>
-                </label>
-                <input
-                  type="text"
-                  value={msgForm.keywords}
-                  onChange={(e) => setMsgForm({ ...msgForm, keywords: e.target.value })}
-                  placeholder="livraison, délai, combien de temps"
-                  className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
-                />
-                <p className="font-mono text-xs text-white/20 mt-1.5">
-                  Le bot déclenchera cette réponse quand le message contient l'un de ces mots
-                </p>
-              </div>
-              <div>
-                <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  Réponse exacte
-                </label>
-                <textarea
-                  value={msgForm.response}
-                  onChange={(e) => setMsgForm({ ...msgForm, response: e.target.value })}
-                  placeholder="Notre délai de livraison est de 48-72h sur Alger et 3-5 jours pour les autres wilayas."
-                  rows={4}
-                  className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowMsgForm(false)}
-                className="flex-1 py-2.5 rounded-xl font-mono text-sm text-white/50 border border-white/[0.08] hover:border-white/20 hover:text-white/70 transition-all"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveMsg}
-                disabled={isPending}
-                className="flex-1 py-2.5 rounded-xl font-mono text-sm font-semibold text-white hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: ORANGE }}
-              >
-                {isPending ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
-                {editMsg ? 'Modifier' : 'Ajouter'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal: Detail response form */}
       {showDetailForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -796,7 +560,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
           <div className="relative w-full max-w-lg bg-[#0D0D10] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-mono font-bold text-white text-lg">
-                {editDetail ? 'Modifier la réponse' : 'Nouvelle réponse détaillée'}
+                {editDetail ? t('detailEdit') : t('detailAdd')}
               </h2>
               <button
                 onClick={() => setShowDetailForm(false)}
@@ -809,33 +573,27 @@ export default function BotSettingsClient({ connections }: { connections: Connec
             <div className="space-y-4">
               <div>
                 <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  Type de question
+                  {t('detailQuestionType')}
                 </label>
                 <input
                   type="text"
                   value={detailForm.questionType}
                   onChange={(e) => setDetailForm({ ...detailForm, questionType: e.target.value })}
-                  placeholder="Ex: Prix de livraison, Politique de retour, Horaires d'ouverture..."
+                  placeholder={t('detailQuestionPlaceholder')}
                   className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
                 />
-                <p className="font-mono text-xs text-white/20 mt-1.5">
-                  L&apos;IA détectera ce type de question et répondra toujours avec votre contenu
-                </p>
               </div>
               <div>
                 <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  Votre réponse type
+                  {t('detailResponse')}
                 </label>
                 <textarea
                   value={detailForm.response}
                   onChange={(e) => setDetailForm({ ...detailForm, response: e.target.value })}
-                  placeholder="Ex: La livraison est gratuite à partir de 5000 DA d'achat. En dessous, nous facturons 400 DA pour Alger et 600 DA pour les autres wilayas."
+                  placeholder={t('detailResponsePlaceholder')}
                   rows={5}
                   className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 resize-none"
                 />
-                <p className="font-mono text-xs text-white/20 mt-1.5">
-                  Le bot reformulera ce contenu selon la personnalité configurée, mais gardera toujours les mêmes informations
-                </p>
               </div>
             </div>
 
@@ -844,7 +602,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
                 onClick={() => setShowDetailForm(false)}
                 className="flex-1 py-2.5 rounded-xl font-mono text-sm text-white/50 border border-white/[0.08] hover:border-white/20 hover:text-white/70 transition-all"
               >
-                Annuler
+                {t('detailCancel')}
               </button>
               <button
                 onClick={handleSaveDetail}
@@ -857,7 +615,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {editDetail ? 'Modifier' : 'Ajouter'}
+                {t('detailSave')}
               </button>
             </div>
           </div>

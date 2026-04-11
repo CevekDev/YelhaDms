@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   ShoppingCart, Search, Eye, X, Package, Clock,
   CheckCircle, Truck, AlertCircle, XCircle, User, Bot,
@@ -8,19 +9,6 @@ import {
 } from 'lucide-react';
 
 const ORANGE = '#FF6B2C';
-
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; color: string; bg: string; icon: React.ElementType }
-> = {
-  PENDING:    { label: 'En attente',   color: '#F59E0B', bg: '#F59E0B15', icon: Clock },
-  CONFIRMED:  { label: 'Confirmée',    color: '#3B82F6', bg: '#3B82F615', icon: CheckCircle },
-  PROCESSING: { label: 'En cours',     color: '#8B5CF6', bg: '#8B5CF615', icon: Package },
-  SHIPPED:    { label: 'Expédiée',     color: ORANGE,    bg: `${ORANGE}15`, icon: Truck },
-  DELIVERED:  { label: 'Livrée',       color: '#10B981', bg: '#10B98115', icon: CheckCircle },
-  CANCELLED:  { label: 'Annulée',      color: '#EF4444', bg: '#EF444415', icon: XCircle },
-  RETURNED:   { label: 'Retour',       color: '#6B7280', bg: '#6B728015', icon: RotateCcw },
-};
 
 type OrderItem = {
   id: string;
@@ -44,29 +32,45 @@ type Order = {
   connection: { name: string; platform: string };
 };
 
-const STATUS_TRANSITIONS: Record<string, { next: string; label: string; color: string }[]> = {
-  PENDING: [
-    { next: 'CONFIRMED', label: 'Confirmer', color: '#3B82F6' },
-    { next: 'CANCELLED', label: 'Annuler',   color: '#EF4444' },
-  ],
-  CONFIRMED: [
-    { next: 'SHIPPED',   label: 'Expédier', color: ORANGE },
-    { next: 'CANCELLED', label: 'Annuler',  color: '#EF4444' },
-  ],
-  PROCESSING: [
-    { next: 'SHIPPED',   label: 'Expédier', color: ORANGE },
-    { next: 'CANCELLED', label: 'Annuler',  color: '#EF4444' },
-  ],
-  SHIPPED: [
-    { next: 'DELIVERED', label: 'Livré',  color: '#10B981' },
-    { next: 'RETURNED',  label: 'Retour', color: '#6B7280' },
-  ],
-  DELIVERED: [],
-  CANCELLED: [],
-  RETURNED:  [],
-};
-
 export default function OrdersClient({ initialOrders }: { initialOrders: Order[] }) {
+  const t = useTranslations('orders');
+  const tCommon = useTranslations('common');
+
+  const STATUS_CONFIG: Record<
+    string,
+    { label: string; color: string; bg: string; icon: React.ElementType }
+  > = {
+    PENDING:    { label: t('status.PENDING'),    color: '#F59E0B', bg: '#F59E0B15', icon: Clock },
+    CONFIRMED:  { label: t('status.CONFIRMED'),  color: '#3B82F6', bg: '#3B82F615', icon: CheckCircle },
+    PROCESSING: { label: t('status.PROCESSING'), color: '#8B5CF6', bg: '#8B5CF615', icon: Package },
+    SHIPPED:    { label: t('status.SHIPPED'),    color: ORANGE,    bg: `${ORANGE}15`, icon: Truck },
+    DELIVERED:  { label: t('status.DELIVERED'),  color: '#10B981', bg: '#10B98115', icon: CheckCircle },
+    CANCELLED:  { label: t('status.CANCELLED'),  color: '#EF4444', bg: '#EF444415', icon: XCircle },
+    RETURNED:   { label: t('status.RETURNED'),   color: '#6B7280', bg: '#6B728015', icon: RotateCcw },
+  };
+
+  const STATUS_TRANSITIONS: Record<string, { next: string; label: string; color: string }[]> = {
+    PENDING: [
+      { next: 'CONFIRMED', label: t('actions.confirm'), color: '#3B82F6' },
+      { next: 'CANCELLED', label: t('actions.cancel'),  color: '#EF4444' },
+    ],
+    CONFIRMED: [
+      { next: 'SHIPPED',   label: t('actions.ship'),   color: ORANGE },
+      { next: 'CANCELLED', label: t('actions.cancel'), color: '#EF4444' },
+    ],
+    PROCESSING: [
+      { next: 'SHIPPED',   label: t('actions.ship'),   color: ORANGE },
+      { next: 'CANCELLED', label: t('actions.cancel'), color: '#EF4444' },
+    ],
+    SHIPPED: [
+      { next: 'DELIVERED', label: t('actions.deliver'), color: '#10B981' },
+      { next: 'RETURNED',  label: t('actions.return'),  color: '#6B7280' },
+    ],
+    DELIVERED: [],
+    CANCELLED: [],
+    RETURNED:  [],
+  };
+
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -93,9 +97,9 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
       const updated = await res.json();
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: updated.status } : o));
       if (selectedOrder?.id === orderId) setSelectedOrder(prev => prev ? { ...prev, status: updated.status } : null);
-      showToast('Statut mis à jour');
+      showToast(t('statusUpdated'));
     } catch {
-      showToast('Erreur lors de la mise à jour', false);
+      showToast(t('updateError'), false);
     } finally {
       setLoadingAction(null);
     }
@@ -106,9 +110,9 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
     try {
       const res = await fetch(`/api/orders/${orderId}/confirm-request`, { method: 'POST' });
       if (!res.ok) throw new Error();
-      showToast('Message de confirmation envoyé au client');
+      showToast(t('confirmSent'));
     } catch {
-      showToast('Erreur lors de l\'envoi', false);
+      showToast(t('sendError'), false);
     } finally {
       setConfirmRequestLoading(null);
     }
@@ -152,10 +156,10 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total',      value: stats.total,     color: 'text-white' },
-          { label: 'En attente', value: stats.pending,   color: 'text-yellow-400' },
-          { label: 'En cours',   value: stats.confirmed, color: 'text-blue-400' },
-          { label: 'Livrées',    value: stats.delivered, color: 'text-green-400' },
+          { label: t('stats.total'),      value: stats.total,     color: 'text-white' },
+          { label: t('stats.pending'),    value: stats.pending,   color: 'text-yellow-400' },
+          { label: t('stats.inProgress'), value: stats.confirmed, color: 'text-blue-400' },
+          { label: t('stats.delivered'),  value: stats.delivered, color: 'text-green-400' },
         ].map((s) => (
           <div
             key={s.label}
@@ -180,7 +184,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
             <ShoppingCart className="w-5 h-5" style={{ color: ORANGE }} />
           </div>
           <div>
-            <p className="font-mono text-xs text-white/40">Chiffre d&apos;affaires total</p>
+            <p className="font-mono text-xs text-white/40">{t('totalRevenue')}</p>
             <p className="font-mono text-xl font-bold text-white">
               {stats.revenue.toLocaleString('fr-DZ')} DA
             </p>
@@ -196,7 +200,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher par client, ID..."
+            placeholder={t('search')}
             className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
           />
         </div>
@@ -212,7 +216,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
               }`}
               style={statusFilter === s ? { background: ORANGE } : {}}
             >
-              {s === 'ALL' ? 'Toutes' : STATUS_CONFIG[s]?.label || s}
+              {s === 'ALL' ? t('filterAll') : STATUS_CONFIG[s]?.label || s}
             </button>
           ))}
         </div>
@@ -227,9 +231,9 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
           >
             <ShoppingCart className="w-7 h-7" style={{ color: ORANGE }} />
           </div>
-          <h3 className="font-mono font-bold text-white mb-2">Aucune commande</h3>
+          <h3 className="font-mono font-bold text-white mb-2">{t('empty')}</h3>
           <p className="font-mono text-sm text-white/30">
-            Les commandes validées par vos bots apparaîtront ici automatiquement
+            {t('emptyDesc')}
           </p>
         </div>
       ) : (
@@ -237,7 +241,15 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                {['Commande', 'Client', 'Bot', 'Montant', 'Statut', 'Date', 'Actions'].map((h) => (
+                {[
+                  t('table.order'),
+                  t('table.client'),
+                  t('table.bot'),
+                  t('table.amount'),
+                  t('table.status'),
+                  t('table.date'),
+                  t('table.actions'),
+                ].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3 font-mono text-xs font-semibold text-white/30 uppercase tracking-wider"
@@ -325,14 +337,14 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
                             disabled={confirmRequestLoading === order.id}
                             className="px-2.5 py-1 rounded-lg font-mono text-[11px] font-semibold transition-all hover:opacity-80 disabled:opacity-50 flex items-center gap-1"
                             style={{ background: '#8B5CF620', color: '#8B5CF6', border: '1px solid #8B5CF640' }}
-                            title="Le bot envoie un message au client pour confirmer sa commande"
+                            title={t('confirmRequest')}
                           >
                             {confirmRequestLoading === order.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
                               <Send className="w-3 h-3" />
                             )}
-                            Confirmer
+                            {t('actions.confirm')}
                           </button>
                         )}
 
@@ -352,7 +364,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
           </table>
           <div className="px-4 py-3 border-t border-white/[0.06] bg-white/[0.01]">
             <p className="font-mono text-xs text-white/20">
-              {filtered.length} commande{filtered.length > 1 ? 's' : ''}
+              {filtered.length > 1 ? t('countPlural', { count: filtered.length }) : t('count', { count: filtered.length })}
             </p>
           </div>
         </div>
@@ -369,7 +381,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="font-mono font-bold text-white text-lg">
-                  Commande #{selectedOrder.id.slice(-6).toUpperCase()}
+                  {t('modal.title')} #{selectedOrder.id.slice(-6).toUpperCase()}
                 </h2>
                 <p className="font-mono text-xs text-white/30 mt-0.5">
                   {new Date(selectedOrder.createdAt).toLocaleString('fr-DZ')}
@@ -385,7 +397,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
 
             {/* Client info */}
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 mb-4 space-y-2">
-              <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">Client</p>
+              <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">{t('modal.client')}</p>
               <div className="flex items-center gap-2">
                 <User className="w-3.5 h-3.5 text-white/30" />
                 <span className="font-mono text-sm text-white">
@@ -404,16 +416,16 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
 
             {/* Items */}
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 mb-4">
-              <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">Articles</p>
+              <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-3">{t('modal.items')}</p>
               <div className="space-y-2">
                 {selectedOrder.items.length === 0 ? (
-                  <p className="font-mono text-xs text-white/20">Aucun article enregistré</p>
+                  <p className="font-mono text-xs text-white/20">{t('modal.noItems')}</p>
                 ) : (
                   selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-mono text-sm text-white">{item.name}</p>
-                        <p className="font-mono text-xs text-white/30">Qté: {item.quantity}</p>
+                        <p className="font-mono text-xs text-white/30">{t('modal.qty')}: {item.quantity}</p>
                       </div>
                       <span className="font-mono text-sm text-white">
                         {(item.price * item.quantity).toLocaleString('fr-DZ')} DA
@@ -424,7 +436,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
               </div>
               {selectedOrder.totalAmount != null && (
                 <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.06]">
-                  <span className="font-mono text-sm font-bold text-white">Total</span>
+                  <span className="font-mono text-sm font-bold text-white">{t('modal.total')}</span>
                   <span className="font-mono text-sm font-bold" style={{ color: ORANGE }}>
                     {selectedOrder.totalAmount.toLocaleString('fr-DZ')} DA
                   </span>
@@ -436,7 +448,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
             {selectedOrder.trackingCode && (
               <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 mb-4">
                 <p className="font-mono text-xs text-white/30 uppercase tracking-wider mb-2">
-                  Code de suivi
+                  {t('modal.tracking')}
                 </p>
                 <p className="font-mono text-sm text-white">{selectedOrder.trackingCode}</p>
               </div>
@@ -454,7 +466,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
                 >
                   {STATUS_CONFIG[selectedOrder.status]?.label}
                 </div>
-                <span className="font-mono text-xs text-white/30">via {selectedOrder.connection.name}</span>
+                <span className="font-mono text-xs text-white/30">{t('modal.via')} {selectedOrder.connection.name}</span>
               </div>
 
               {/* Action buttons in modal */}
@@ -481,7 +493,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
               {['PENDING', 'CONFIRMED'].includes(selectedOrder.status) && (
                 <div className="pt-2 border-t border-white/[0.06]">
                   <p className="font-mono text-xs text-white/30 mb-2">
-                    Le bot va envoyer un message au client pour confirmer sa commande et ses coordonnées.
+                    {t('confirmRequest')}
                   </p>
                   <button
                     onClick={() => sendConfirmRequest(selectedOrder.id)}
@@ -494,7 +506,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    Demander confirmation au client
+                    {t('confirmRequestBtn')}
                   </button>
                 </div>
               )}

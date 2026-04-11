@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Package, Plus, Search, Edit2, Trash2, Lock,
   ShoppingBag, Tag, Layers, AlertCircle, X, Check,
@@ -36,6 +37,8 @@ export default function ProductsClient({
   initialProducts: Product[];
   canImport: boolean;
 }) {
+  const t = useTranslations('products');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [search, setSearch] = useState('');
@@ -75,9 +78,9 @@ export default function ProductsClient({
   };
 
   const handleSave = () => {
-    if (!form.name.trim()) { setError('Le nom est obligatoire'); return; }
+    if (!form.name.trim()) { setError(t('errors.nameRequired')); return; }
     if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0) {
-      setError('Le prix est obligatoire et doit être un nombre positif');
+      setError(t('errors.priceRequired'));
       return;
     }
     setError('');
@@ -100,7 +103,7 @@ export default function ProductsClient({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || 'Une erreur est survenue');
+        setError(data.error || tCommon('error'));
         return;
       }
 
@@ -116,7 +119,7 @@ export default function ProductsClient({
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm('Supprimer ce produit ?')) return;
+    if (!confirm(t('deleteConfirm'))) return;
     startTransition(async () => {
       await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
       setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -147,7 +150,7 @@ export default function ProductsClient({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un produit..."
+            placeholder={t('search')}
             className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
           />
         </div>
@@ -168,7 +171,7 @@ export default function ProductsClient({
             </button>
             {!canImport && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#1a1a20] border border-white/10 rounded-lg px-3 py-2 text-[11px] font-mono text-white/50 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                Disponible dès le pack Business
+                {t('importAvailable')}
               </div>
             )}
           </div>
@@ -187,7 +190,7 @@ export default function ProductsClient({
             </button>
             {!canImport && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#1a1a20] border border-white/10 rounded-lg px-3 py-2 text-[11px] font-mono text-white/50 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                Disponible dès le pack Business
+                {t('importAvailable')}
               </div>
             )}
           </div>
@@ -198,7 +201,7 @@ export default function ProductsClient({
             style={{ background: ORANGE }}
           >
             <Plus className="w-4 h-4" />
-            Ajouter
+            {t('add')}
           </button>
         </div>
       </div>
@@ -212,9 +215,9 @@ export default function ProductsClient({
           >
             <ShoppingBag className="w-7 h-7" style={{ color: ORANGE }} />
           </div>
-          <h3 className="font-mono font-bold text-white mb-2">Aucun produit</h3>
+          <h3 className="font-mono font-bold text-white mb-2">{t('empty')}</h3>
           <p className="font-mono text-sm text-white/30 mb-6">
-            Ajoutez vos produits pour que le bot puisse les présenter et prendre des commandes
+            {t('emptyDesc')}
           </p>
           <button
             onClick={openCreate}
@@ -222,7 +225,7 @@ export default function ProductsClient({
             style={{ background: ORANGE }}
           >
             <Plus className="w-4 h-4" />
-            Ajouter un produit
+            {t('addProduct')}
           </button>
         </div>
       ) : (
@@ -230,7 +233,14 @@ export default function ProductsClient({
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                {['Produit', 'Prix', 'Stock', 'Source', 'Statut', ''].map((h) => (
+                {[
+                  t('table.product'),
+                  t('table.price'),
+                  t('table.stock'),
+                  t('table.source'),
+                  t('table.status'),
+                  t('table.actions'),
+                ].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3 font-mono text-xs font-semibold text-white/30 uppercase tracking-wider"
@@ -267,7 +277,7 @@ export default function ProductsClient({
                           : 'text-green-400 bg-green-500/10'
                       }`}
                     >
-                      {p.stock == null ? '∞' : p.stock === 0 ? 'Rupture' : p.stock}
+                      {p.stock == null ? t('stockUnlimited') : p.stock === 0 ? t('stockOut') : p.stock}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -310,7 +320,7 @@ export default function ProductsClient({
           </table>
           <div className="px-4 py-3 border-t border-white/[0.06] bg-white/[0.01]">
             <p className="font-mono text-xs text-white/20">
-              {filtered.length} produit{filtered.length > 1 ? 's' : ''}
+              {filtered.length > 1 ? t('countPlural', { count: filtered.length }) : t('count', { count: filtered.length })}
             </p>
           </div>
         </div>
@@ -326,7 +336,7 @@ export default function ProductsClient({
           <div className="relative w-full max-w-lg bg-[#0D0D10] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-mono font-bold text-white text-lg">
-                {editProduct ? 'Modifier le produit' : 'Nouveau produit'}
+                {editProduct ? t('form.editTitle') : t('form.newTitle')}
               </h2>
               <button
                 onClick={() => setShowForm(false)}
@@ -340,13 +350,13 @@ export default function ProductsClient({
               {/* Name */}
               <div>
                 <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  Nom du produit <span style={{ color: ORANGE }}>*</span>
+                  {t('form.nameLabel')} <span style={{ color: ORANGE }}>*</span>
                 </label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Robe kabyle traditionnelle"
+                  placeholder={t('form.namePlaceholder')}
                   className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
                 />
               </div>
@@ -354,18 +364,18 @@ export default function ProductsClient({
               {/* Brand + Price */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-mono text-xs text-white/50 mb-1.5">Marque</label>
+                  <label className="block font-mono text-xs text-white/50 mb-1.5">{t('form.brandLabel')}</label>
                   <input
                     type="text"
                     value={form.brand}
                     onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                    placeholder="Ex: Amazigh Couture"
+                    placeholder={t('form.brandPlaceholder')}
                     className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
                   />
                 </div>
                 <div>
                   <label className="block font-mono text-xs text-white/50 mb-1.5">
-                    Prix (DA) <span style={{ color: ORANGE }}>*</span>
+                    {t('form.priceLabel')} <span style={{ color: ORANGE }}>*</span>
                   </label>
                   <input
                     type="number"
@@ -380,11 +390,11 @@ export default function ProductsClient({
 
               {/* Description */}
               <div>
-                <label className="block font-mono text-xs text-white/50 mb-1.5">Description</label>
+                <label className="block font-mono text-xs text-white/50 mb-1.5">{t('form.descriptionLabel')}</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Description du produit..."
+                  placeholder={t('form.descriptionPlaceholder')}
                   rows={3}
                   className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 resize-none"
                 />
@@ -393,8 +403,8 @@ export default function ProductsClient({
               {/* Stock */}
               <div>
                 <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  Stock{' '}
-                  <span className="text-white/20">(laisser vide = illimité)</span>
+                  {t('form.stockLabel')}{' '}
+                  <span className="text-white/20">{t('form.stockHint')}</span>
                 </label>
                 <input
                   type="number"
@@ -419,7 +429,7 @@ export default function ProductsClient({
                 onClick={() => setShowForm(false)}
                 className="flex-1 py-2.5 rounded-xl font-mono text-sm text-white/50 border border-white/[0.08] hover:border-white/20 hover:text-white/70 transition-all"
               >
-                Annuler
+                {tCommon('cancel')}
               </button>
               <button
                 onClick={handleSave}
@@ -432,7 +442,7 @@ export default function ProductsClient({
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {editProduct ? 'Enregistrer' : 'Ajouter'}
+                {editProduct ? t('form.save') : t('form.add')}
               </button>
             </div>
           </div>
@@ -449,7 +459,7 @@ export default function ProductsClient({
           <div className="relative w-full max-w-md bg-[#0D0D10] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-mono font-bold text-white text-lg">
-                Importer depuis {importModal === 'woocommerce' ? 'WooCommerce' : 'Shopify'}
+                {t('importFrom', { platform: importModal === 'woocommerce' ? 'WooCommerce' : 'Shopify' })}
               </h2>
               <button
                 onClick={() => setImportModal(null)}
@@ -462,7 +472,7 @@ export default function ProductsClient({
             <div className="space-y-4">
               <div>
                 <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  URL de votre boutique
+                  {t('importStoreUrl')}
                 </label>
                 <input
                   type="url"
@@ -478,7 +488,7 @@ export default function ProductsClient({
               </div>
               <div>
                 <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  {importModal === 'woocommerce' ? 'Consumer Key' : 'API Key'}
+                  {importModal === 'woocommerce' ? t('importKey') : t('importApiKey')}
                 </label>
                 <input
                   type="text"
@@ -490,7 +500,7 @@ export default function ProductsClient({
               </div>
               {importModal === 'woocommerce' && (
                 <div>
-                  <label className="block font-mono text-xs text-white/50 mb-1.5">Consumer Secret</label>
+                  <label className="block font-mono text-xs text-white/50 mb-1.5">{t('importSecret')}</label>
                   <input
                     type="text"
                     value={importSecret}
@@ -503,8 +513,7 @@ export default function ProductsClient({
 
               <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.06]">
                 <p className="font-mono text-xs text-white/40 leading-relaxed">
-                  ℹ️ Vos clés API sont stockées de manière sécurisée et utilisées uniquement pour
-                  synchroniser vos produits.
+                  ℹ️ {t('importSecurityNote')}
                 </p>
               </div>
             </div>
@@ -514,7 +523,7 @@ export default function ProductsClient({
                 onClick={() => setImportModal(null)}
                 className="flex-1 py-2.5 rounded-xl font-mono text-sm text-white/50 border border-white/[0.08] hover:border-white/20 hover:text-white/70 transition-all"
               >
-                Annuler
+                {tCommon('cancel')}
               </button>
               <button
                 onClick={() => {
@@ -526,7 +535,7 @@ export default function ProductsClient({
                 style={{ background: ORANGE }}
               >
                 <Package className="w-4 h-4" />
-                Importer
+                {t('import')}
               </button>
             </div>
           </div>
