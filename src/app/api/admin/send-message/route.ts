@@ -57,17 +57,17 @@ export async function POST(req: NextRequest) {
       resend.emails.send({
         from: FROM,
         to: r.email,
-        subject: `[Yelha] ${subject}`,
+        subject: `[YelhaDms] ${subject}`,
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#f9fafb;border-radius:12px;">
             <div style="background:#0a0a0a;padding:20px 24px;border-radius:8px 8px 0 0;text-align:center;">
-              <span style="background:#FF6B2C;color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:monospace;">Yelha</span>
+              <span style="background:#FF6B2C;color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:monospace;">YelhaDms</span>
             </div>
             <div style="background:#fff;padding:32px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;border-top:none;">
               <h2 style="color:#111;margin-top:0;">${subject}</h2>
               <div style="color:#555;line-height:1.7;white-space:pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
-              <p style="color:#aaa;font-size:11px;margin:0;">© 2025 Yelha · mehdimerah06.pro@gmail.com</p>
+              <p style="color:#aaa;font-size:11px;margin:0;">© 2025 YelhaDms · mehdimerah06.pro@gmail.com</p>
             </div>
           </div>
         `,

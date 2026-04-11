@@ -27,7 +27,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
   ];
 
   const featureCards = [
-    { icon: Send,  label: 'Telegram Bot',     desc: t('hero.telegram'), color: '#0EA5E9' },
+    { icon: Send,  label: t('features.telegram.title'), desc: t('hero.telegram'), color: '#0EA5E9' },
     { icon: Globe, label: t('features.multilang.title'), desc: t('hero.multilang'), color: ORANGE },
     { icon: Mic,   label: t('features.voice.title'),     desc: t('hero.voice'),     color: '#8B5CF6' },
   ];
@@ -72,7 +72,7 @@ export function MynaHero({ locale }: MynaHeroProps) {
             >
               <Bot className="w-5 h-5 text-white" />
             </div>
-            <span className="font-mono font-bold text-white text-lg tracking-tight">Yelha</span>
+            <span className="font-mono font-bold text-white text-lg tracking-tight">YelhaDms</span>
           </Link>
 
           {/* Desktop nav */}

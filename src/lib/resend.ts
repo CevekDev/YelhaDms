@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = 'Yelha <noreply@dms.yelha.net>';
+const FROM = 'YelhaDms <noreply@dms.yelha.net>';
 const ORANGE = '#FF6B2C';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://yelha-production.up.railway.app';
 
@@ -9,12 +9,12 @@ function baseTemplate(content: string) {
   return `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#f9fafb;border-radius:12px;">
       <div style="background:#0a0a0a;padding:20px 24px;border-radius:8px 8px 0 0;text-align:center;">
-        <span style="background:${ORANGE};color:#fff;padding:6px 18px;border-radius:20px;font-size:14px;font-weight:700;font-family:monospace;letter-spacing:1px;">Yelha</span>
+        <span style="background:${ORANGE};color:#fff;padding:6px 18px;border-radius:20px;font-size:14px;font-weight:700;font-family:monospace;letter-spacing:1px;">YelhaDms</span>
       </div>
       <div style="background:#fff;padding:32px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;border-top:none;">
         ${content}
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
-        <p style="color:#aaa;font-size:11px;margin:0;">© 2025 Yelha · dms.yelha.net</p>
+        <p style="color:#aaa;font-size:11px;margin:0;">© 2025 YelhaDms · dms.yelha.net</p>
       </div>
     </div>
   `;
@@ -43,9 +43,9 @@ export async function sendVerificationCodeEmail(
   locale: string = 'fr'
 ) {
   const subjects: Record<string, string> = {
-    fr: '[Yelha] Votre code de vérification',
-    en: '[Yelha] Your verification code',
-    ar: '[Yelha] رمز التحقق الخاص بك',
+    fr: '[YelhaDms] Votre code de vérification',
+    en: '[YelhaDms] Your verification code',
+    ar: '[YelhaDms] رمز التحقق الخاص بك',
   };
 
   const greeting = locale === 'ar' ? 'مرحباً' : locale === 'en' ? 'Hello' : 'Bonjour';
@@ -82,7 +82,7 @@ export async function sendAdminGiftEmail(
 ) {
   const content = `
     <h2 style="color:#111;margin-top:0;">🎁 Vous avez reçu des tokens, ${name} !</h2>
-    <p style="color:#555;line-height:1.7;">L'équipe Yelha vous a offert des tokens sur votre compte.</p>
+    <p style="color:#555;line-height:1.7;">L'équipe YelhaDms vous a offert des tokens sur votre compte.</p>
     <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin:24px 0;text-align:center;">
       <p style="margin:0;color:#888;font-size:13px;font-family:monospace;">${packName ? `PACK ${packName.toUpperCase()}` : 'TOKENS OFFERTS'}</p>
       <p style="margin:10px 0 4px;font-size:42px;font-weight:800;color:${ORANGE};font-family:monospace;">${tokens.toLocaleString()}</p>
@@ -97,7 +97,7 @@ export async function sendAdminGiftEmail(
     </div>
   `;
 
-  await sendMail(email, `[Yelha] 🎁 ${tokens.toLocaleString()} tokens offerts`, baseTemplate(content));
+  await sendMail(email, `[YelhaDms] 🎁 ${tokens.toLocaleString()} tokens offerts`, baseTemplate(content));
 }
 
 export async function sendTokenPurchaseEmail(
@@ -122,7 +122,7 @@ export async function sendTokenPurchaseEmail(
     </div>
   `;
 
-  await sendMail(email, `[Yelha] Confirmation — ${tokens.toLocaleString()} tokens achetés`, baseTemplate(content));
+  await sendMail(email, `[YelhaDms] Confirmation — ${tokens.toLocaleString()} tokens achetés`, baseTemplate(content));
 }
 
 // Partner welcome email
@@ -137,7 +137,7 @@ export async function sendPartnerEmail(
     : 'Tokens illimités';
 
   const content = `
-    <h2 style="color:#111;margin-top:0;">🤝 Félicitations ${name} — Vous êtes maintenant Partenaire Yelha !</h2>
+    <h2 style="color:#111;margin-top:0;">🤝 Félicitations ${name} — Vous êtes maintenant Partenaire YelhaDms !</h2>
     <div style="background:linear-gradient(135deg,#FF6B2C15,#FF6B2C05);border:2px solid ${ORANGE}40;border-radius:12px;padding:24px;margin:24px 0;text-align:center;">
       <span style="background:${ORANGE};color:#fff;font-family:monospace;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:2px;text-transform:uppercase;">PARTENAIRE</span>
       <p style="margin:16px 0 4px;font-size:18px;font-weight:800;color:#111;font-family:monospace;">${tokensLabel}</p>
@@ -151,7 +151,7 @@ export async function sendPartnerEmail(
       <li>✅ Support prioritaire</li>
       ${tokenLimit ? `<li>✅ ${tokenLimit.toLocaleString()} tokens disponibles</li>` : '<li>✅ Tokens illimités</li>'}
     </ul>
-    ${adminMessage ? `<div style="background:#f9fafb;border-left:3px solid ${ORANGE};padding:12px 16px;margin:20px 0;border-radius:0 8px 8px 0;"><p style="margin:0;color:#555;font-size:14px;font-style:italic;">"${adminMessage}"</p><p style="margin:8px 0 0;color:#aaa;font-size:12px;">— L'équipe Yelha</p></div>` : ''}
+    ${adminMessage ? `<div style="background:#f9fafb;border-left:3px solid ${ORANGE};padding:12px 16px;margin:20px 0;border-radius:0 8px 8px 0;"><p style="margin:0;color:#555;font-size:14px;font-style:italic;">"${adminMessage}"</p><p style="margin:8px 0 0;color:#aaa;font-size:12px;">— L'équipe YelhaDms</p></div>` : ''}
     <div style="text-align:center;margin:28px 0;">
       <a href="${APP_URL}/fr/dashboard"
          style="display:inline-block;background:${ORANGE};color:#fff;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-family:monospace;font-size:14px;">
@@ -160,7 +160,7 @@ export async function sendPartnerEmail(
     </div>
   `;
 
-  await sendMail(email, `[Yelha] 🤝 Bienvenue dans le programme Partenaire !`, baseTemplate(content));
+  await sendMail(email, `[YelhaDms] 🤝 Bienvenue dans le programme Partenaire !`, baseTemplate(content));
 }
 
 // Password reset — now sends a 6-digit code, not a link
@@ -171,9 +171,9 @@ export async function sendPasswordResetEmail(
   locale: string = 'fr'
 ) {
   const subjects: Record<string, string> = {
-    fr: '[Yelha] Réinitialisez votre mot de passe',
-    en: '[Yelha] Reset your password',
-    ar: '[Yelha] إعادة تعيين كلمة المرور',
+    fr: '[YelhaDms] Réinitialisez votre mot de passe',
+    en: '[YelhaDms] Reset your password',
+    ar: '[YelhaDms] إعادة تعيين كلمة المرور',
   };
 
   const greeting = locale === 'ar' ? 'مرحباً' : locale === 'en' ? 'Hello' : 'Bonjour';
@@ -204,7 +204,7 @@ export async function sendPasswordResetEmail(
 // Welcome email for new Google OAuth users
 export async function sendWelcomeEmail(email: string, name: string) {
   const content = `
-    <h2 style="color:#111;margin-top:0;">Bienvenue sur Yelha, ${name} ! 🎉</h2>
+    <h2 style="color:#111;margin-top:0;">Bienvenue sur YelhaDms, ${name} ! 🎉</h2>
     <p style="color:#555;line-height:1.7;">
       Votre compte a bien été créé. Vous pouvez dès maintenant créer votre premier bot Telegram IA et commencer à automatiser vos réponses.
     </p>
@@ -225,5 +225,5 @@ export async function sendWelcomeEmail(email: string, name: string) {
     </div>
   `;
 
-  await sendMail(email, `[Yelha] Bienvenue ! Votre compte est prêt 🚀`, baseTemplate(content));
+  await sendMail(email, `[YelhaDms] Bienvenue ! Votre compte est prêt 🚀`, baseTemplate(content));
 }

@@ -34,7 +34,7 @@ const STEPS_FR = [
   { icon: '🔍', text: 'Ouvrez Telegram et recherchez @BotFather' },
   { icon: '⌨️', text: 'Envoyez /newbot et suivez les instructions' },
   { icon: '📋', text: 'Copiez le token fourni par BotFather' },
-  { icon: '💬', text: 'Collez le token ci-dessus, puis envoyez un message à votre bot — Yelha capturera votre Chat ID automatiquement' },
+  { icon: '💬', text: 'Collez le token ci-dessus, puis envoyez un message à votre bot — YelhaDms capturera votre Chat ID automatiquement' },
 ];
 
 export default function ConnectionsPage() {
@@ -171,7 +171,7 @@ export default function ConnectionsPage() {
                 placeholder="1234567890:AAAA..."
               />
               <p className="text-xs text-white/25 mt-1.5 font-mono">
-                Après connexion, envoyez un message à votre bot — Yelha capturera votre Chat ID automatiquement.
+                Après connexion, envoyez un message à votre bot — YelhaDms capturera votre Chat ID automatiquement.
               </p>
             </div>
           </div>
@@ -393,7 +393,7 @@ export default function ConnectionsPage() {
                     </p>
                     <p className="text-xs text-white/40 font-mono mt-1 leading-relaxed">
                       Une fois le token entré et le bot connecté, envoyez n&apos;importe quel message à votre bot depuis Telegram.
-                      Yelha détectera automatiquement votre Chat ID et votre nom — aucune action supplémentaire requise.
+                      YelhaDms détectera automatiquement votre Chat ID et votre nom — aucune action supplémentaire requise.
                     </p>
                   </div>
                 </div>

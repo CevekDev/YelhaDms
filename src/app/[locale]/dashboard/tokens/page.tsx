@@ -123,7 +123,7 @@ export default function TokensPage() {
 
   const sendReceipt = () => {
     const msg = encodeURIComponent(
-      `Bonjour, je viens d'effectuer un versement CCP pour acheter des tokens Yelha.\n\nNuméro CCP : ${CCP_NUMBER}\n\nMerci de valider mon compte.`
+      `Bonjour, je viens d'effectuer un versement CCP pour acheter des tokens YelhaDms.\n\nNuméro CCP : ${CCP_NUMBER}\n\nMerci de valider mon compte.`
     );
     window.open(`https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}?text=${msg}`, '_blank');
   };
@@ -266,7 +266,7 @@ export default function TokensPage() {
                   {
                     n: '03',
                     title: 'Envoyez le reçu de versement',
-                    desc: 'Envoyez une photo de votre reçu sur WhatsApp avec votre email Yelha.',
+                    desc: 'Envoyez une photo de votre reçu sur WhatsApp avec votre email YelhaDms.',
                     whatsapp: true,
                   },
                 ].map(step => (

@@ -156,7 +156,7 @@ export default async function LandingPage({ params: { locale } }: { params: { lo
             >
               <Bot className="w-4 h-4 text-white" />
             </div>
-            <span className="font-mono font-bold text-white">Yelha</span>
+            <span className="font-mono font-bold text-white">YelhaDms</span>
           </div>
           <p className="font-mono text-xs text-white/30">{t('footer.rights')}</p>
           <div className="flex gap-5 font-mono text-xs text-white/30">

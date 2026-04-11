@@ -426,7 +426,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
                 type="text"
                 value={botName}
                 onChange={(e) => setBotName(e.target.value)}
-                placeholder="Assistant, Yelha Bot..."
+                placeholder="Assistant, MonBot..."
                 className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
               />
             </div>
@@ -445,12 +445,12 @@ export default function BotSettingsClient({ connections }: { connections: Connec
           <div>
             <label className="block font-mono text-xs text-white/50 mb-1.5">
               Instructions personnalisées{' '}
-              <span className="text-white/20">(contexte supplémentaire pour le bot)</span>
+              <span className="text-white/20">(à l'impératif — comment le bot doit se comporter)</span>
             </label>
             <textarea
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="Ex: Nous livrons uniquement en Algérie. Notre délai de livraison est de 48-72h. En cas de problème, le client doit contacter le 0550 XX XX XX..."
+              placeholder="Ex: Réponds toujours en darija algérienne. Si le client demande le prix, donne le prix exact. Ne propose jamais de remise. Demande toujours le nom et la wilaya avant de confirmer une commande..."
               rows={5}
               className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 resize-none leading-relaxed"
             />

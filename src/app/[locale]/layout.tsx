@@ -23,8 +23,8 @@ export async function generateMetadata({ params: { locale } }: { params: { local
 function staticMetadata(locale: string): Metadata {
   return {
   title: {
-    default: 'Yelha — Bot Telegram IA pour les entreprises algériennes',
-    template: '%s | Yelha',
+    default: 'YelhaDms — Bot IA pour les entreprises algériennes',
+    template: '%s | YelhaDms',
   },
   description:
     'Automatisez vos réponses Telegram avec une IA intelligente. Parle arabe (Darija & MSA), français, anglais. Paiement en Dinars Algériens (DZD) via Chargily.',
@@ -40,9 +40,9 @@ function staticMetadata(locale: string): Metadata {
     'bot arabe algérie',
     'SaaS algérie',
   ],
-  authors: [{ name: 'Yelha', url: 'https://yelha-production.up.railway.app' }],
-  creator: 'Yelha',
-  publisher: 'Yelha',
+  authors: [{ name: 'YelhaDms', url: 'https://yelha-production.up.railway.app' }],
+  creator: 'YelhaDms',
+  publisher: 'YelhaDms',
   metadataBase: new URL('https://yelha-production.up.railway.app'),
   alternates: {
     canonical: '/',
@@ -56,8 +56,8 @@ function staticMetadata(locale: string): Metadata {
     type: 'website',
     locale: 'fr_DZ',
     url: 'https://yelha-production.up.railway.app',
-    siteName: 'Yelha',
-    title: 'Yelha — Bot Telegram IA pour les entreprises algériennes',
+    siteName: 'YelhaDms',
+    title: 'YelhaDms — Bot IA pour les entreprises algériennes',
     description:
       'Automatisez vos réponses Telegram avec une IA intelligente. Arabe (Darija & MSA), français, anglais. Paiement DZD.',
     images: [
@@ -65,13 +65,13 @@ function staticMetadata(locale: string): Metadata {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Yelha — Bot Telegram IA Algérie',
+        alt: 'YelhaDms — Bot IA Algérie',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Yelha — Bot Telegram IA',
+    title: 'YelhaDms — Bot IA',
     description: 'Automatisez vos messages Telegram avec une IA qui parle Darija, arabe, français.',
     images: ['/og-image.png'],
   },

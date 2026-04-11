@@ -48,7 +48,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Menu className="w-4 h-4" />
           </button>
           <span className="font-mono font-bold text-white flex-1">
-            Yelha<span style={{ color: ORANGE }}>.</span>
+            YelhaDms<span style={{ color: ORANGE }}>.</span>
           </span>
           <span
             className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md"

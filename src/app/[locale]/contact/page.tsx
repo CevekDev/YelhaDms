@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Contact',
-  description: 'Contactez l\'équipe Yelha — support et questions.',
+  description: 'Contactez l\'équipe YelhaDms — support et questions.',
 };
 
 const ORANGE = '#FF6B2C';
@@ -19,7 +19,7 @@ export default function ContactPage({ params: { locale } }: { params: { locale: 
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: ORANGE }}>
               <Bot className="w-5 h-5 text-white" />
             </div>
-            <span className="font-mono font-bold text-white">Yelha</span>
+            <span className="font-mono font-bold text-white">YelhaDms</span>
           </Link>
           <Link href={`/${locale}`} className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white transition-colors font-mono">
             <ArrowLeft className="w-4 h-4" /> Retour
@@ -54,9 +54,9 @@ export default function ContactPage({ params: { locale } }: { params: { locale: 
             {
               icon: Send,
               title: 'Telegram',
-              value: '@YelhaDZ',
+              value: '@YelhaDmsDZ',
               desc: 'Support direct via Telegram',
-              href: 'https://t.me/YelhaDZ',
+              href: 'https://t.me/YelhaDmsDZ',
               cta: 'Ouvrir Telegram',
             },
             {
@@ -111,7 +111,7 @@ export default function ContactPage({ params: { locale } }: { params: { locale: 
             {[
               {
                 q: 'Comment créer un bot Telegram ?',
-                a: `Ouvrez Telegram et cherchez @BotFather. Envoyez /newbot, choisissez un nom et un username pour votre bot. Copiez le token fourni et collez-le dans votre tableau de bord Yelha — le webhook est configuré automatiquement.`,
+                a: `Ouvrez Telegram et cherchez @BotFather. Envoyez /newbot, choisissez un nom et un username pour votre bot. Copiez le token fourni et collez-le dans votre tableau de bord YelhaDms — le webhook est configuré automatiquement.`,
               },
               {
                 q: 'Quels moyens de paiement acceptez-vous ?',
@@ -119,7 +119,7 @@ export default function ContactPage({ params: { locale } }: { params: { locale: 
               },
               {
                 q: "Est-ce que l'IA parle Darija ?",
-                a: "Oui ! Yelha utilise DeepSeek AI qui comprend et répond en Darija algérienne, arabe MSA, français, anglais et plus de 100 autres langues. Elle détecte automatiquement la langue du message reçu.",
+                a: "Oui ! YelhaDms utilise DeepSeek AI qui comprend et répond en Darija algérienne, arabe MSA, français, anglais et plus de 100 autres langues. Elle détecte automatiquement la langue du message reçu.",
               },
               {
                 q: 'Les tokens expirent-ils ?',
@@ -127,7 +127,7 @@ export default function ContactPage({ params: { locale } }: { params: { locale: 
               },
               {
                 q: "Comment fonctionne la transcription vocale ?",
-                a: 'Quand un client envoie un message vocal, Yelha le transcrit via OpenAI Whisper, puis DeepSeek AI génère une réponse textuelle appropriée. Cela coûte 2 tokens au lieu de 1.',
+                a: 'Quand un client envoie un message vocal, YelhaDms le transcrit via OpenAI Whisper, puis DeepSeek AI génère une réponse textuelle appropriée. Cela coûte 2 tokens au lieu de 1.',
               },
               {
                 q: 'Puis-je personnaliser les réponses du bot ?',
@@ -150,7 +150,7 @@ export default function ContactPage({ params: { locale } }: { params: { locale: 
 
       <footer className="border-t border-white/10 py-8 mt-16">
         <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
-          <span className="font-mono text-xs text-white/30">© 2025 Yelha</span>
+          <span className="font-mono text-xs text-white/30">© 2025 YelhaDms</span>
           <div className="flex gap-5 font-mono text-xs">
             <Link href={`/${locale}/privacy`} className="text-white/30 hover:text-white/60 transition-colors">Confidentialité</Link>
             <Link href={`/${locale}/terms`} className="text-white/30 hover:text-white/60 transition-colors">CGU</Link>

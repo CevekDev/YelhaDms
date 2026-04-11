@@ -125,7 +125,7 @@ export default function VerifyTwoFactorPage() {
             <Shield style={{ width: '28px', height: '28px', color: '#fff' }} />
           </div>
           <div style={{ fontFamily: 'monospace', fontSize: '24px', fontWeight: '800', color: '#fff' }}>
-            Yelha<span style={{ color: ORANGE }}>.</span>
+            YelhaDms<span style={{ color: ORANGE }}>.</span>
           </div>
         </div>
 

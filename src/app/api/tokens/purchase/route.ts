@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       customerName: user.name || undefined,
       successUrl: `${appUrl}/${locale}/dashboard/tokens?success=true`,
       failureUrl: `${appUrl}/${locale}/dashboard/tokens?canceled=true`,
-      description: `Yelha — ${pkg.name} (${pkg.tokens} tokens)`,
+      description: `YelhaDms — ${pkg.name} (${pkg.tokens} tokens)`,
       metadata: {
         userId: session.user.id,
         packageId: pkg.id,

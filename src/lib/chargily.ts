@@ -36,7 +36,7 @@ export async function createChargilyCheckout(params: {
     currency: params.currency.toLowerCase(), // 'dzd'
     success_url: params.successUrl,
     failure_url: params.failureUrl,
-    description: params.description ?? 'Yelha — Achat de tokens',
+    description: params.description ?? 'YelhaDms — Achat de tokens',
     locale: params.locale ?? 'fr',
     collect_shipping_address: 0,
     metadata: params.metadata,

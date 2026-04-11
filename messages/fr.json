@@ -26,7 +26,7 @@
     "title": "Tout ce dont vous avez besoin",
     "subtitle": "Une plateforme complète pour automatiser vos ventes et offrir un service client exceptionnel.",
     "telegram": {
-      "title": "Bot Telegram IA",
+      "title": "Bot IA",
       "desc": "Connectez votre bot en quelques secondes. Répond automatiquement à tous vos clients 24h/24."
     },
     "multilang": {
@@ -90,9 +90,8 @@
         "features": [
           "500 messages texte",
           "200 messages vocaux",
-          "Bot Telegram IA",
-          "IA Multilingue (Darija, AR, FR, EN)",
-          "Réponses prédéfinies (0.5 token)"
+          "Bot IA",
+          "IA Multilingue (Darija, AR, FR, EN)"
         ]
       },
       "business": {
@@ -100,9 +99,8 @@
         "features": [
           "2 000 messages texte",
           "1 000 messages vocaux",
-          "Bot Telegram IA",
+          "Bot IA",
           "IA Multilingue",
-          "Réponses prédéfinies (0 token)",
           "Prise de commandes automatique",
           "Intégration Shopify & WooCommerce",
           "Instructions personnalisées",
@@ -118,7 +116,7 @@
           "Intégration sociétés de livraison",
           "Confirmation de commande automatique",
           "Intégration Google Sheets",
-          "Multi-bots Telegram",
+          "Multi-bots IA",
           "Support prioritaire"
         ]
       },
@@ -139,11 +137,11 @@
   "cta": {
     "title1": "Prêt à automatiser",
     "title2": "vos ventes ?",
-    "subtitle": "Rejoignez les boutiques algériennes qui utilisent Yelha pour vendre plus.",
+    "subtitle": "Rejoignez les boutiques algériennes qui utilisent YelhaDms pour vendre plus.",
     "button": "Commencer gratuitement — 25 tokens offerts →"
   },
   "footer": {
-    "rights": "© 2025 Yelha. Tous droits réservés.",
+    "rights": "© 2025 YelhaDms. Tous droits réservés.",
     "privacy": "Confidentialité",
     "terms": "CGU",
     "contact": "Contact"
@@ -248,7 +246,7 @@
       "step1": "Ouvrez Telegram et recherchez @BotFather",
       "step2": "Envoyez la commande /newbot et suivez les instructions",
       "step3": "Copiez le token fourni par BotFather et collez-le ci-dessus",
-      "step4": "Envoyez n'importe quel message à votre bot — Yelha capturera automatiquement votre chat ID et nom",
+      "step4": "Envoyez n'importe quel message à votre bot — YelhaDms capturera automatiquement votre chat ID et nom",
       "youtubeLabel": "Voir le tutoriel vidéo",
       "youtubeUrl": ""
     }

@@ -37,7 +37,7 @@ export function AdminSidebar() {
         >
           <Bot className="w-5 h-5 text-white" />
         </div>
-        <span className="font-mono font-bold text-white text-lg flex-1">Yelha</span>
+        <span className="font-mono font-bold text-white text-lg flex-1">YelhaDms</span>
         <span
           className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md tracking-wider"
           style={{ background: `${ORANGE}25`, color: ORANGE }}

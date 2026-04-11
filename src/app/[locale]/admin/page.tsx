@@ -9,7 +9,6 @@ import AdminUsersTable from '@/components/admin/users-table';
 import AdminTokensPanel from '@/components/admin/tokens-panel';
 import AdminMessagesPanel from '@/components/admin/messages-panel';
 import AdminPromoPanel from '@/components/admin/promo-panel';
-import AdminSettingsForm from '@/components/admin/settings-form';
 
 const ORANGE = '#FF6B2C';
 
@@ -47,7 +46,6 @@ export default async function AdminPage({ params: { locale } }: { params: { loca
     todayMessages,
     allUsers,
     promoCodes,
-    systemPrompt,
     packages,
     purchasesWeek,
     usageWeek,
@@ -70,7 +68,6 @@ export default async function AdminPage({ params: { locale } }: { params: { loca
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { uses: true } } },
     }),
-    prisma.systemSetting.findUnique({ where: { key: 'global_system_prompt' } }),
     prisma.tokenPackage.findMany({ where: { isActive: true } }),
     prisma.tokenTransaction.findMany({
       where: { type: 'PURCHASE', createdAt: { gte: weekStart } },
@@ -200,7 +197,7 @@ export default async function AdminPage({ params: { locale } }: { params: { loca
           Vue d&apos;ensemble <span style={{ color: ORANGE }}>Admin</span>
         </h1>
         <p className="text-white/30 text-sm mt-1 font-mono">
-          Yelha — Tableau de bord administrateur
+          YelhaDms — Tableau de bord administrateur
         </p>
       </div>
 
@@ -408,9 +405,6 @@ export default async function AdminPage({ params: { locale } }: { params: { loca
 
       {/* Promo codes */}
       <AdminPromoPanel initialCodes={promoCodes} />
-
-      {/* System prompt */}
-      <AdminSettingsForm initialPrompt={systemPrompt?.value || ''} />
     </div>
   );
 }

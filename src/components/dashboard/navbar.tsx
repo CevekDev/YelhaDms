@@ -41,7 +41,7 @@ export function DashboardNavbar({ onMenuClick }: DashboardNavbarProps) {
       {/* Logo on mobile */}
       <div className="lg:hidden flex-1">
         <span className="font-mono font-bold text-white text-base">
-          Yelha<span style={{ color: ORANGE }}>.</span>
+          YelhaDms<span style={{ color: ORANGE }}>.</span>
         </span>
       </div>
 

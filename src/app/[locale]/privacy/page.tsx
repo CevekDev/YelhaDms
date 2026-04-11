@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Politique de confidentialité',
-  description: 'Politique de confidentialité de Yelha — comment nous protégeons vos données.',
+  description: 'Politique de confidentialité de YelhaDms — comment nous protégeons vos données.',
 };
 
 const ORANGE = '#FF6B2C';
@@ -20,7 +20,7 @@ export default function PrivacyPage({ params: { locale } }: { params: { locale: 
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: ORANGE }}>
               <Bot className="w-5 h-5 text-white" />
             </div>
-            <span className="font-mono font-bold text-white">Yelha</span>
+            <span className="font-mono font-bold text-white">YelhaDms</span>
           </Link>
           <Link href={`/${locale}`} className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white transition-colors font-mono">
             <ArrowLeft className="w-4 h-4" /> Retour
@@ -35,7 +35,7 @@ export default function PrivacyPage({ params: { locale } }: { params: { locale: 
         {[
           {
             title: '1. Qui sommes-nous ?',
-            content: `Yelha est un service SaaS algérien qui permet aux entreprises d'automatiser leurs réponses Telegram grâce à l'intelligence artificielle. Nous sommes basés en Algérie.\n\nContact : ${EMAIL}`,
+            content: `YelhaDms est un service SaaS algérien qui permet aux entreprises d'automatiser leurs réponses Telegram grâce à l'intelligence artificielle. Nous sommes basés en Algérie.\n\nContact : ${EMAIL}`,
           },
           {
             title: '2. Données collectées',
@@ -87,7 +87,7 @@ export default function PrivacyPage({ params: { locale } }: { params: { locale: 
 
       <footer className="border-t border-white/10 py-8">
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
-          <span className="font-mono text-xs text-white/30">© 2025 Yelha</span>
+          <span className="font-mono text-xs text-white/30">© 2025 YelhaDms</span>
           <div className="flex gap-5 font-mono text-xs">
             <Link href={`/${locale}/terms`} className="text-white/30 hover:text-white/60 transition-colors">CGU</Link>
             <Link href={`/${locale}/contact`} className="text-white/30 hover:text-white/60 transition-colors">Contact</Link>

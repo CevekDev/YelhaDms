@@ -163,7 +163,7 @@ export function YelhaAuthCard({
                   className="text-3xl font-bold mb-3 font-mono"
                   style={{ color: ORANGE }}
                 >
-                  Yelha
+                  YelhaDms
                 </m.h2>
                 <m.p
                   initial={{ opacity: 0 }}
@@ -208,14 +208,14 @@ export function YelhaAuthCard({
                 >
                   <Bot className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-mono font-bold text-white">Yelha</span>
+                <span className="font-mono font-bold text-white">YelhaDms</span>
               </div>
 
               <h1 className="text-2xl md:text-3xl font-bold mb-1 text-white">
                 {mode === 'signin' ? 'Bienvenue 👋' : 'Créer un compte'}
               </h1>
               <p className="text-white/40 mb-7 font-mono text-sm">
-                {mode === 'signin' ? 'Connectez-vous à votre espace' : 'Rejoignez Yelha gratuitement'}
+                {mode === 'signin' ? 'Connectez-vous à votre espace' : 'Rejoignez YelhaDms gratuitement'}
               </p>
 
               {/* injected form content */}

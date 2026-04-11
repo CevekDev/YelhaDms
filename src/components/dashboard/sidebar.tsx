@@ -92,7 +92,7 @@ export function Sidebar() {
           >
             <Bot className="w-5 h-5 text-white" />
           </div>
-          <span className="font-mono font-bold text-white text-lg">Yelha</span>
+          <span className="font-mono font-bold text-white text-lg">YelhaDms</span>
         </Link>
       </div>
 

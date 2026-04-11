@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
   try {
     const resend = new Resend(apiKey);
     const result = await resend.emails.send({
-      from: 'Yelha <noreply@dms.yelha.net>',
+      from: 'YelhaDms <noreply@dms.yelha.net>',
       to: recipient,
-      subject: '[Yelha] Test email ✅',
+      subject: '[YelhaDms] Test email ✅',
       html: '<p style="font-family:monospace">Si tu vois cet email, Resend fonctionne correctement !</p>',
     });
 

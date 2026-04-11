@@ -22,13 +22,13 @@ export async function POST(req: NextRequest) {
     });
 
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'YelhaDms <noreply@dms.yelha.net>',
       to: email,
-      subject: '[Yelha] Votre code de vérification',
+      subject: '[YelhaDms] Votre code de vérification',
       html: `
         <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#f9fafb;border-radius:12px;">
           <div style="background:#0a0a0a;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-            <span style="background:${ORANGE};color:#fff;padding:6px 18px;border-radius:20px;font-weight:700;font-family:monospace;font-size:14px;letter-spacing:1px;">Yelha</span>
+            <span style="background:${ORANGE};color:#fff;padding:6px 18px;border-radius:20px;font-weight:700;font-family:monospace;font-size:14px;letter-spacing:1px;">YelhaDms</span>
           </div>
           <div style="background:#fff;padding:32px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;border-top:none;">
             <h2 style="color:#111;margin-top:0;">Code de vérification</h2>
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
             </div>
             <p style="color:#999;font-size:13px;">Ce code expire dans <strong>10 minutes</strong>. Ne le partagez avec personne.</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;"/>
-            <p style="color:#aaa;font-size:11px;margin:0;">© 2025 Yelha · Si vous n'avez pas demandé ce code, ignorez cet email.</p>
+            <p style="color:#aaa;font-size:11px;margin:0;">© 2025 YelhaDms · Si vous n'avez pas demandé ce code, ignorez cet email.</p>
           </div>
         </div>
       `,

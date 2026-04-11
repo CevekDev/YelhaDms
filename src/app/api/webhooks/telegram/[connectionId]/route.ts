@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
-import { callDeepSeek, buildSystemPrompt } from '@/lib/deepseek';
+import { callDeepSeek, buildSystemPrompt, GLOBAL_SYSTEM_PROMPT } from '@/lib/deepseek';
 import { transcribeAudio } from '@/lib/whisper';
 import {
   getOrCreateConversation,
@@ -145,7 +145,7 @@ export async function POST(
 
   // ── Solde tokens ─────────────────────────────────────────────────────────
   if (tokensRequired > 0 && !user.unlimitedTokens && user.tokenBalance < tokensRequired) {
-    await sendTelegramMessage(token, chatId, '⚠️ Solde de jetons insuffisant. Rechargez votre compte sur Yelha.');
+    await sendTelegramMessage(token, chatId, '⚠️ Solde de jetons insuffisant. Rechargez votre compte sur YelhaDms.');
     return NextResponse.json({ ok: true });
   }
 
@@ -251,9 +251,6 @@ async function sendTelegramMessage(token: string, chatId: number, text: string) 
 }
 
 async function buildTelegramSystemPrompt(connection: any, contactContext: string): Promise<string> {
-  const setting = await prisma.systemSetting.findUnique({ where: { key: 'global_system_prompt' } });
-  const globalPrompt = setting?.value || getDefaultPrompt();
-
   const predefinedStr = connection.predefinedMessages
     .map((m: any) => `Mots-clés: ${m.keywords.join(', ')}\nRéponse: ${m.response}`)
     .join('\n---\n');
@@ -274,14 +271,13 @@ async function buildTelegramSystemPrompt(connection: any, contactContext: string
       ).join('\n')
     : 'Aucun produit configuré pour le moment.';
 
-  const { buildSystemPrompt } = await import('@/lib/deepseek');
   let prompt = buildSystemPrompt({
     botName: connection.botName || 'Assistant',
     businessName: connection.businessName || '',
     botPersonality: connection.botPersonality,
     predefinedResponses: predefinedStr,
     customInstructions: connection.customInstructions || '',
-    globalPrompt,
+    globalPrompt: GLOBAL_SYSTEM_PROMPT,
     contactContext,
     detailResponses: detailStr,
   });
@@ -294,9 +290,3 @@ async function buildTelegramSystemPrompt(connection: any, contactContext: string
   return prompt;
 }
 
-function getDefaultPrompt(): string {
-  return `Tu es {botName}, l'assistant e-commerce de {businessName}.
-{botPersonality}
-RÉPONSES PRÉDÉFINIES : {predefinedResponses}
-INSTRUCTIONS : {customInstructions}`;
-}

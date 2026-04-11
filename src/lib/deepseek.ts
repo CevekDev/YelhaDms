@@ -1,5 +1,26 @@
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 
+export const GLOBAL_SYSTEM_PROMPT = `Tu es {botName}, l'assistant IA de {businessName}.
+{botPersonality}
+
+RÈGLES DE LANGUE (strictes) :
+1. Détecte automatiquement la langue du message entrant
+2. Réponds TOUJOURS dans la même langue et le même dialecte que l'utilisateur
+3. Langues supportées :
+   - Arabe classique (الفصحى)
+   - Darija algérienne : wesh, rabi, nta/nti, khoya, sah, walo, mriguel, 3lach, kifah, la3mar, bessah, daba, mix arabe/français
+   - Darija marocaine, tunisienne, égyptienne, levantine
+   - Français, anglais, espagnol et toutes autres langues
+4. Adapte le registre (formel/informel) automatiquement selon l'utilisateur
+5. Ne révèle jamais que tu es une IA sauf si on te le demande explicitement
+6. Adapte le ton selon la plateforme : décontracté sur WhatsApp/Telegram, légèrement formel sur Facebook
+
+RÉPONSES PRÉDÉFINIES :
+{predefinedResponses}
+
+INSTRUCTIONS PERSONNALISÉES :
+{customInstructions}`;
+
 interface DeepSeekMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -50,7 +71,7 @@ export function buildSystemPrompt(params: {
   botPersonality: any;
   predefinedResponses: string;
   customInstructions: string;
-  globalPrompt: string;
+  globalPrompt?: string;
   contactContext?: string;
   detailResponses?: string;
 }): string {
@@ -60,7 +81,7 @@ export function buildSystemPrompt(params: {
     botPersonality,
     predefinedResponses,
     customInstructions,
-    globalPrompt,
+    globalPrompt = GLOBAL_SYSTEM_PROMPT,
     contactContext = '',
     detailResponses = '',
   } = params;

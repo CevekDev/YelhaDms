@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 
   // ── Solde tokens ──────────────────────────────────────────────────────────
   if (tokensRequired > 0 && !user.unlimitedTokens && user.tokenBalance < tokensRequired) {
-    await sendWhatsAppMessage(from, '⚠️ Solde de jetons insuffisant. Rechargez sur Yelha.');
+    await sendWhatsAppMessage(from, '⚠️ Solde de jetons insuffisant. Rechargez sur YelhaDms.');
     return new NextResponse(TWIML_OK, { headers: { 'Content-Type': 'text/xml' } });
   }
 

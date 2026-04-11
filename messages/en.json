@@ -25,19 +25,46 @@
     "badge": "Features",
     "title": "Everything you need",
     "subtitle": "A complete platform to automate your sales and deliver exceptional customer service.",
-    "telegram": { "title": "AI Telegram Bot", "desc": "Connect your bot in seconds. Automatically replies to all your customers 24/7." },
-    "multilang": { "title": "Multilingual AI", "desc": "Replies in Arabic (MSA & Darija), French, English automatically based on the customer's language." },
-    "voice": { "title": "Voice Messages", "desc": "Transcribes voice messages via OpenAI Whisper and replies intelligently in text." },
-    "orders": { "title": "Order Taking", "desc": "The bot automatically collects name, phone number, wilaya and commune for each order." },
-    "payment": { "title": "Pay-as-you-go", "desc": "1 token per text, 2 tokens per voice. Pay only for what you use in DZD." },
-    "security": { "title": "Enterprise Security", "desc": "AES-256 encryption, JWT, rate limiting. Your data stays secure." }
+    "telegram": {
+      "title": "AI Bot",
+      "desc": "Connect your bot in seconds. Automatically replies to all your customers 24/7."
+    },
+    "multilang": {
+      "title": "Multilingual AI",
+      "desc": "Replies in Arabic (MSA & Darija), French, English automatically based on the customer's language."
+    },
+    "voice": {
+      "title": "Voice Messages",
+      "desc": "Transcribes voice messages via OpenAI Whisper and replies intelligently in text."
+    },
+    "orders": {
+      "title": "Order Taking",
+      "desc": "The bot automatically collects name, phone number, wilaya and commune for each order."
+    },
+    "payment": {
+      "title": "Pay-as-you-go",
+      "desc": "1 token per text, 2 tokens per voice. Pay only for what you use in DZD."
+    },
+    "security": {
+      "title": "Enterprise Security",
+      "desc": "AES-256 encryption, JWT, rate limiting. Your data stays secure."
+    }
   },
   "howItWorks": {
     "badge": "How It Works",
     "title": "Up and running in 3 steps",
-    "step1": { "title": "Create your account", "desc": "Sign up and receive 25 free tokens to test the service." },
-    "step2": { "title": "Connect Telegram", "desc": "Create a bot via @BotFather and paste the token — the webhook is configured automatically." },
-    "step3": { "title": "AI replies for you", "desc": "Your bot responds 24/7 in your customers' language and takes orders automatically." }
+    "step1": {
+      "title": "Create your account",
+      "desc": "Sign up and receive 25 free tokens to test the service."
+    },
+    "step2": {
+      "title": "Connect Telegram",
+      "desc": "Create a bot via @BotFather and paste the token — the webhook is configured automatically."
+    },
+    "step3": {
+      "title": "AI replies for you",
+      "desc": "Your bot responds 24/7 in your customers' language and takes orders automatically."
+    }
   },
   "pricing": {
     "badge": "Transparent Pricing",
@@ -60,30 +87,61 @@
     "plans": {
       "starter": {
         "desc": "Perfect to get started",
-        "features": ["500 text messages","200 voice messages","AI Telegram Bot","Multilingual AI (Darija, AR, FR, EN)","Predefined replies (0.5 token)"]
+        "features": [
+          "500 text messages",
+          "200 voice messages",
+          "AI Bot",
+          "Multilingual AI (Darija, AR, FR, EN)"
+        ]
       },
       "business": {
         "desc": "Most popular",
-        "features": ["2,000 text messages","1,000 voice messages","AI Telegram Bot","Multilingual AI","Predefined replies (0 token)","Automatic order taking","Shopify & WooCommerce integration","Custom instructions","Business hours"]
+        "features": [
+          "2,000 text messages",
+          "1,000 voice messages",
+          "AI Bot",
+          "Multilingual AI",
+          "Automatic order taking",
+          "Shopify & WooCommerce integration",
+          "Custom instructions",
+          "Business hours"
+        ]
       },
       "pro": {
         "desc": "High volume",
-        "features": ["5,000 text messages","2,500 voice messages","Everything in Business","Delivery company integration","Automatic order confirmation","Google Sheets integration","Multi Telegram bots","Priority support"]
+        "features": [
+          "5,000 text messages",
+          "2,500 voice messages",
+          "Everything in Business",
+          "Delivery company integration",
+          "Automatic order confirmation",
+          "Google Sheets integration",
+          "Multi Telegram bots",
+          "Priority support"
+        ]
       },
       "agency": {
         "desc": "Agencies & resellers",
-        "features": ["15,000 text messages","7,500 voice messages","Everything in Pro","Automatic parcel tracking","Unlimited bots","Dedicated support","Custom onboarding"]
+        "features": [
+          "15,000 text messages",
+          "7,500 voice messages",
+          "Everything in Pro",
+          "Automatic parcel tracking",
+          "Unlimited bots",
+          "Dedicated support",
+          "Custom onboarding"
+        ]
       }
     }
   },
   "cta": {
     "title1": "Ready to automate",
     "title2": "your sales?",
-    "subtitle": "Join Algerian stores using Yelha to sell more.",
+    "subtitle": "Join Algerian stores using YelhaDms to sell more.",
     "button": "Get started for free — 25 tokens included →"
   },
   "footer": {
-    "rights": "© 2025 Yelha. All rights reserved.",
+    "rights": "© 2025 YelhaDms. All rights reserved.",
     "privacy": "Privacy",
     "terms": "Terms",
     "contact": "Contact"
@@ -192,7 +250,7 @@
       "step1": "Open Telegram and search for @BotFather",
       "step2": "Send the command /newbot and follow the instructions",
       "step3": "Copy the token provided by BotFather and paste it above",
-      "step4": "Send any message to your bot — Yelha will automatically capture your chat ID and name",
+      "step4": "Send any message to your bot — YelhaDms will automatically capture your chat ID and name",
       "youtubeLabel": "Watch the tutorial video",
       "youtubeUrl": ""
     }
