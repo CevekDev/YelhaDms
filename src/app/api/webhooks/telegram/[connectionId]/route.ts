@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
 import { callDeepSeek, buildSystemPrompt, GLOBAL_SYSTEM_PROMPT } from '@/lib/deepseek';
+import { sendLowTokenEmail } from '@/lib/resend';
 import { transcribeAudio } from '@/lib/whisper';
 import {
   getOrCreateConversation,
@@ -171,59 +172,78 @@ export async function POST(
 
     const rawResponse = await callDeepSeek(aiMessages, systemPrompt);
 
-    // ── Hors sujet → suspendre la conversation + needsHelp ───────────────
+    logCost(user.id, messageType === 'voice' ? 'deepseek_voice' : 'deepseek_text');
+
+    // ── Hors sujet → spam score approach ────────────────────────────────
     if (rawResponse.startsWith('[HORS_SUJET]')) {
       responseText = rawResponse.replace('[HORS_SUJET]', '').trim();
-      // Marquer comme needsHelp + suspendre cette conversation
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { needsHelp: true, isSuspended: true },
-      });
-      await saveInboundOnly({ conversationId: conversation.id, content: inboundContent, type: messageType });
-      await upsertContactContext(connection.id, contactId, { contactName });
-      if (responseText) await sendTelegramMessage(token, chatId, responseText);
-      return NextResponse.json({ ok: true });
+      const blocked = await handleSpam(conversation.id);
+      if (blocked) {
+        await saveInboundOnly({ conversationId: conversation.id, content: inboundContent, type: messageType });
+        await upsertContactContext(connection.id, contactId, { contactName });
+        if (responseText) await sendTelegramMessage(token, chatId, responseText);
+        return NextResponse.json({ ok: true });
+      }
     }
 
     // ── Commande confirmée → extraire JSON et sauvegarder ────────────────
-    const orderMatch = rawResponse.match(/\[COMMANDE_CONFIRMEE:(\{[\s\S]*?\})\]/);
-    if (orderMatch) {
-      responseText = rawResponse.replace(/\[COMMANDE_CONFIRMEE:[\s\S]*?\]/, '').trim();
-      try {
-        const orderData = JSON.parse(orderMatch[1]);
-        await saveOrderFromBot(connection, contactId, contactName, orderData);
-      } catch (e) {
-        console.error('[Telegram] Order parse error', e);
+    const tagStart = rawResponse.indexOf('[COMMANDE_CONFIRMEE:');
+    if (tagStart !== -1) {
+      const jsonStart = tagStart + '[COMMANDE_CONFIRMEE:'.length;
+      // Find the matching closing }] by scanning from the end
+      const tagEnd = rawResponse.lastIndexOf('}]');
+      if (tagEnd > jsonStart) {
+        const jsonStr = rawResponse.slice(jsonStart, tagEnd + 1);
+        responseText = (rawResponse.slice(0, tagStart) + rawResponse.slice(tagEnd + 2)).trim();
+        try {
+          const orderData = JSON.parse(jsonStr);
+          await saveOrderFromBot(connection, contactId, contactName, orderData);
+        } catch (e) {
+          console.error('[Telegram] Order parse error', e, 'JSON:', jsonStr);
+        }
+      } else {
+        responseText = rawResponse;
       }
-    } else {
+    } else if (!rawResponse.startsWith('[HORS_SUJET]')) {
       responseText = rawResponse;
     }
-
-    logCost(user.id, messageType === 'voice' ? 'deepseek_voice' : 'deepseek_text');
   }
 
   if (!responseText) return NextResponse.json({ ok: true });
 
-  // ── Débiter tokens ────────────────────────────────────────────────────────
+  // ── Débiter tokens (atomique) ─────────────────────────────────────────────
   if (tokensRequired > 0 && !user.unlimitedTokens) {
-    const updated = await prisma.user.updateMany({
-      where: { id: connection.userId, tokenBalance: { gte: tokensRequired } },
-      data: { tokenBalance: { decrement: tokensRequired } },
-    });
-    if (updated.count === 0) {
+    let newBalance: number;
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { id: connection.userId, tokenBalance: { gte: tokensRequired } },
+        data: { tokenBalance: { decrement: tokensRequired } },
+        select: { tokenBalance: true },
+      });
+      newBalance = updatedUser.tokenBalance;
+    } catch {
+      // Prisma throws when WHERE matches 0 rows (insufficient balance)
       await sendTelegramMessage(token, chatId, '⚠️ Solde de jetons insuffisant.');
       return NextResponse.json({ ok: true });
     }
-    const newUser = await prisma.user.findUnique({ where: { id: connection.userId } });
     await prisma.tokenTransaction.create({
       data: {
         userId: connection.userId,
         type: 'USAGE',
         amount: -tokensRequired,
-        balance: newUser!.tokenBalance,
+        balance: newBalance,
         description: `Telegram — ${messageType}`,
       },
     });
+
+    // Check low token alert
+    if (newBalance <= 100) {
+      const freshUser = await prisma.user.findUnique({ where: { id: connection.userId }, select: { lowTokenAlertSent: true, email: true, name: true } });
+      if (freshUser && !freshUser.lowTokenAlertSent) {
+        await prisma.user.update({ where: { id: connection.userId }, data: { lowTokenAlertSent: true } });
+        try { await sendLowTokenEmail(freshUser.email, freshUser.name ?? '', newBalance); } catch {}
+      }
+    }
   }
 
   // ── Envoyer ───────────────────────────────────────────────────────────────
@@ -283,6 +303,7 @@ async function buildTelegramSystemPrompt(connection: any, contactContext: string
     contactContext,
     detailResponses: detailStr,
     isFirstMessage,
+    commerceType: connection.commerceType || 'products',
   });
 
   return prompt + `\n\n══════════════════════════════════════
@@ -301,10 +322,17 @@ async function saveOrderFromBot(connection: any, contactId: string, contactName:
   });
 
   const items = (data.produits || []).map((item: any) => {
-    const found = allProducts.find((p) =>
-      p.name.toLowerCase().includes(item.nom?.toLowerCase() || '') ||
-      item.nom?.toLowerCase().includes(p.name.toLowerCase())
-    );
+    const itemNameLower = (item.nom ?? '').toLowerCase();
+    // 1. Exact match first
+    let found = allProducts.find((p) => p.name.toLowerCase() === itemNameLower);
+    // 2. Substring match only for names 4+ characters long
+    if (!found && itemNameLower.length >= 4) {
+      found = allProducts.find(
+        (p) =>
+          p.name.toLowerCase().includes(itemNameLower) ||
+          (p.name.length >= 4 && itemNameLower.includes(p.name.toLowerCase()))
+      );
+    }
     return {
       name: item.nom || 'Produit',
       quantity: item.quantite || 1,

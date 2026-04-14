@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendVerificationCodeEmail } from '@/lib/resend';
-import { authRatelimit } from '@/lib/ratelimit';
+import { authRatelimit, getRateLimitKey } from '@/lib/ratelimit';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { passwordSchema } from '@/lib/validations';
 
-const TRIAL_TOKENS = 25;
+const TRIAL_TOKENS = 50;
 
 const schema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
   password: passwordSchema,
+  phone: z.string().min(9).max(15).optional(),
+  dateOfBirth: z.string().optional(),
 });
 
 function generateCode(): string {
@@ -19,9 +21,7 @@ function generateCode(): string {
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for') ?? 'anonymous';
-
-  const { success } = await authRatelimit.limit(ip);
+  const { success } = await authRatelimit.limit(getRateLimitKey(req));
   if (!success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
@@ -32,21 +32,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, phone, dateOfBirth } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
+    // Email déjà utilisé → "Te revoilà" si trialUsed, sinon erreur standard
+    if (existing.trialUsed) {
+      // Envoyer email "te revoilà" (non-blocking)
+      try {
+        const { sendWelcomeBackEmail } = await import('@/lib/resend');
+        await sendWelcomeBackEmail(existing.email, existing.name || 'Utilisateur');
+      } catch {}
+    }
     return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // Create user with 25 free trial tokens
+  // Create user with 50 free trial tokens
   const user = await prisma.user.create({
     data: {
       name,
       email,
       password: hashedPassword,
+      phone: phone || null,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       tokenBalance: TRIAL_TOKENS,
       trialUsed: true,
     },

@@ -30,7 +30,7 @@ export default function PrivacyPage({ params: { locale } }: { params: { locale: 
 
       <main className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold mb-2 font-mono">Politique de confidentialité</h1>
-        <p className="text-white/40 font-mono text-sm mb-12">Dernière mise à jour : Janvier 2025</p>
+        <p className="text-white/40 font-mono text-sm mb-12">Dernière mise à jour : Avril 2026</p>
 
         {[
           {
@@ -76,9 +76,11 @@ export default function PrivacyPage({ params: { locale } }: { params: { locale: 
             </h2>
             <div className="text-white/60 leading-relaxed space-y-2 font-mono text-sm whitespace-pre-line">
               {section.content.split('\n').map((line, i) => (
-                <p key={i} className={line.startsWith('•') ? 'pl-2' : ''}>
-                  {line.replace(/\*\*(.*?)\*\*/g, '$1')}
-                </p>
+                <p
+                  key={i}
+                  className={line.startsWith('•') ? 'pl-2' : ''}
+                  dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}
+                />
               ))}
             </div>
           </section>
@@ -87,7 +89,7 @@ export default function PrivacyPage({ params: { locale } }: { params: { locale: 
 
       <footer className="border-t border-white/10 py-8">
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
-          <span className="font-mono text-xs text-white/30">© 2025 YelhaDms</span>
+          <span className="font-mono text-xs text-white/30">© 2026 YelhaDms</span>
           <div className="flex gap-5 font-mono text-xs">
             <Link href={`/${locale}/terms`} className="text-white/30 hover:text-white/60 transition-colors">CGU</Link>
             <Link href={`/${locale}/contact`} className="text-white/30 hover:text-white/60 transition-colors">Contact</Link>

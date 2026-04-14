@@ -14,6 +14,8 @@ export const signUpSchema = z
     email: z.string().email(),
     password: passwordSchema,
     confirmPassword: z.string(),
+    phone: z.string().min(9).max(15).optional().or(z.literal('')),
+    dateOfBirth: z.string().optional(),
     acceptTerms: z.boolean().refine((v) => v === true, 'You must accept the terms'),
   })
   .refine((data) => data.password === data.confirmPassword, {

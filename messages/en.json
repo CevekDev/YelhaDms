@@ -14,7 +14,7 @@
     "title1": "Automate",
     "title2": "your sales",
     "title3": "with AI",
-    "subtitle": "Your bot responds 24/7, takes orders, speaks Darija & Arabic and manages your customers automatically.",
+    "subtitle": "Your bot responds 24/7, speaks Darija & Arabic and manages your customers automatically.",
     "cta": "Get started for free",
     "ctaSub": "25 tokens included • No credit card required",
     "telegram": "Smart bot available 24/7",
@@ -39,7 +39,7 @@
     },
     "orders": {
       "title": "Order Taking",
-      "desc": "The bot automatically collects name, phone number, wilaya and commune for each order."
+      "desc": "The bot automatically collects name, phone number, wilaya and commune for each order. Available from the Business plan."
     },
     "payment": {
       "title": "Pay-as-you-go",
@@ -88,8 +88,7 @@
       "starter": {
         "desc": "Perfect to get started",
         "features": [
-          "500 text messages",
-          "200 voice messages",
+          "500 tokens (e.g. 500 texts or 200 voice)",
           "AI Bot",
           "Multilingual AI (Darija, AR, FR, EN)"
         ]
@@ -97,8 +96,7 @@
       "business": {
         "desc": "Most popular",
         "features": [
-          "2,000 text messages",
-          "1,000 voice messages",
+          "2,000 tokens (e.g. 2,000 texts or 1,000 voice)",
           "AI Bot",
           "Multilingual AI",
           "Automatic order taking",
@@ -110,8 +108,7 @@
       "pro": {
         "desc": "High volume",
         "features": [
-          "5,000 text messages",
-          "2,500 voice messages",
+          "5,000 tokens (e.g. 5,000 texts or 2,500 voice)",
           "Everything in Business",
           "Delivery company integration",
           "Automatic order confirmation",
@@ -123,8 +120,7 @@
       "agency": {
         "desc": "Agencies & resellers",
         "features": [
-          "15,000 text messages",
-          "7,500 voice messages",
+          "15,000 tokens (e.g. 15,000 texts or 7,500 voice)",
           "Everything in Pro",
           "Automatic parcel tracking",
           "Unlimited bots",
@@ -141,7 +137,7 @@
     "button": "Get started for free — 25 tokens included →"
   },
   "footer": {
-    "rights": "© 2025 YelhaDms. All rights reserved.",
+    "rights": "© 2026 YelhaDms. All rights reserved.",
     "privacy": "Privacy",
     "terms": "Terms",
     "contact": "Contact"

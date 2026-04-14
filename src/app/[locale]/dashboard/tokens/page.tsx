@@ -282,10 +282,10 @@ export default function TokensPage() {
                       {step.desc && <p className="font-mono text-xs text-white/40 mt-1">{step.desc}</p>}
 
                       {step.ccp && (
-                        <div className="mt-2 flex items-center gap-2">
+                        <div className="mt-2 space-y-2">
                           <div
-                            className="flex-1 px-3 py-2 rounded-lg font-mono text-sm font-bold text-white border"
-                            style={{ background: '#3B82F615', borderColor: '#3B82F630', letterSpacing: '0.05em' }}
+                            className="w-full px-3 py-2 rounded-lg font-mono text-sm font-bold text-white border break-all"
+                            style={{ background: '#3B82F615', borderColor: '#3B82F630', letterSpacing: '0.04em' }}
                           >
                             {CCP_NUMBER}
                           </div>
@@ -297,7 +297,7 @@ export default function TokensPage() {
                               : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }}
                           >
                             {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                            {copied ? 'Copié !' : 'Copier'}
+                            {copied ? 'Copié !' : 'Copier le numéro'}
                           </button>
                         </div>
                       )}
@@ -354,15 +354,15 @@ export default function TokensPage() {
         )}
       </div>
 
-      {/* Transaction history */}
-      {transactions.length > 0 && (
+      {/* Transaction history — credits only (hide usage debits) */}
+      {transactions.filter((tx: any) => ['TRIAL', 'PURCHASE', 'PACK_GRANT', 'ADMIN_GRANT', 'BONUS', 'REFUND'].includes(tx.type)).length > 0 && (
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
           <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
             <Clock className="w-4 h-4 text-white/30" />
-            <h2 className="font-mono font-semibold text-white text-sm">Historique</h2>
+            <h2 className="font-mono font-semibold text-white text-sm">Historique des recharges</h2>
           </div>
           <div className="divide-y divide-white/[0.04]">
-            {transactions.map((tx: any) => {
+            {transactions.filter((tx: any) => ['TRIAL', 'PURCHASE', 'PACK_GRANT', 'ADMIN_GRANT', 'BONUS', 'REFUND'].includes(tx.type)).map((tx: any) => {
               const Icon = TX_ICONS[tx.type] || Coins;
               const color = TX_COLORS[tx.type] || ORANGE;
               const isDebit = tx.amount < 0;

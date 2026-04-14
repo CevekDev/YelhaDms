@@ -14,7 +14,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   const { isSuspended, needsHelp } = await req.json();
   const data: any = {};
-  if (isSuspended !== undefined) data.isSuspended = Boolean(isSuspended);
+  if (isSuspended !== undefined) {
+    data.isSuspended = Boolean(isSuspended);
+    // Reset spam state when reactivating a conversation
+    if (!isSuspended) {
+      data.spamScore = 0;
+      data.needsHelp = false;
+    }
+  }
   if (needsHelp !== undefined) data.needsHelp = Boolean(needsHelp);
 
   const updated = await prisma.conversation.update({ where: { id: params.id }, data });

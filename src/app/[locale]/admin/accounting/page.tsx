@@ -2,14 +2,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { Calculator, TrendingUp, TrendingDown, DollarSign, Zap, Mic, MessageSquare } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, Euro, Zap, Mic, MessageSquare } from 'lucide-react';
 
 const ORANGE = '#FF6B2C';
 
-// Taux de change estimé DZD → USD
-const DZD_TO_USD = 1 / 135;
+// Taux de change : 1 EUR = 285 DA
+const DZD_TO_EUR = 1 / 285;
+const EUR_TO_DZD = 285;
 
-function usdToDzd(usd: number) { return usd / DZD_TO_USD; }
+function eurToDzd(eur: number) { return eur * EUR_TO_DZD; }
+function dzdToEur(dzd: number) { return dzd * DZD_TO_EUR; }
 
 export default async function AdminAccountingPage({ params: { locale } }: { params: { locale: string } }) {
   const session = await getServerSession(authOptions);
@@ -70,20 +72,21 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
     ? ((monthRevenueDZD - lastMonthRevenueDZD) / lastMonthRevenueDZD) * 100
     : 0;
 
-  // Coûts API (USD depuis logs)
+  // Coûts API (en USD depuis logs → convertis en EUR → en DA)
+  // 1 USD ≈ 0.92 EUR, 1 EUR = 285 DA
+  const USD_TO_EUR = 0.92;
   const totalCostUSD = allCostLogs.reduce((a, c) => a + c.estimatedCost, 0);
   const monthCostUSD = monthCostLogs.reduce((a, c) => a + c.estimatedCost, 0);
 
-  // Si pas encore de logs, estimer depuis les messages
-  const estimatedTotalCostUSD = allCostLogs.length > 0
+  const estimatedTotalCostEUR = (allCostLogs.length > 0
     ? totalCostUSD
-    : textMessages * 0.000154 + voiceMessages * (0.003 + 0.000154);
-  const estimatedMonthCostUSD = monthCostLogs.length > 0
+    : textMessages * 0.000154 + voiceMessages * (0.003 + 0.000154)) * USD_TO_EUR;
+  const estimatedMonthCostEUR = (monthCostLogs.length > 0
     ? monthCostUSD
-    : monthTextMessages * 0.000154 + monthVoiceMessages * (0.003 + 0.000154);
+    : monthTextMessages * 0.000154 + monthVoiceMessages * (0.003 + 0.000154)) * USD_TO_EUR;
 
-  const totalCostDZD = usdToDzd(estimatedTotalCostUSD);
-  const monthCostDZD = usdToDzd(estimatedMonthCostUSD);
+  const totalCostDZD = eurToDzd(estimatedTotalCostEUR);
+  const monthCostDZD = eurToDzd(estimatedMonthCostEUR);
 
   const totalProfitDZD = totalRevenueDZD - totalCostDZD;
   const monthProfitDZD = monthRevenueDZD - monthCostDZD;
@@ -154,7 +157,7 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
           {
             label: 'Coûts API (mois)',
             value: `${monthCostDZD.toLocaleString('fr-DZ', { maximumFractionDigits: 0 })} DA`,
-            sub: `≈ $${estimatedMonthCostUSD.toFixed(2)} USD`,
+            sub: `≈ €${estimatedMonthCostEUR.toFixed(4)}`,
             icon: TrendingDown,
             color: '#EF4444',
             up: false,
@@ -163,7 +166,7 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
             label: 'Bénéfice net (mois)',
             value: `${monthProfitDZD.toLocaleString('fr-DZ', { maximumFractionDigits: 0 })} DA`,
             sub: `Marge ${marginPercent.toFixed(1)}%`,
-            icon: DollarSign,
+            icon: Euro,
             color: marginPercent > 50 ? '#10B981' : marginPercent > 20 ? ORANGE : '#EF4444',
             up: monthProfitDZD > 0,
           },
@@ -241,7 +244,7 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
             {[
               {
                 label: 'DeepSeek (texte + vocal)',
-                costUSD: deepseekCostUSD,
+                costEUR: deepseekCostUSD * USD_TO_EUR,
                 count: textMessages + voiceMessages,
                 unit: 'messages IA',
                 color: '#8B5CF6',
@@ -249,7 +252,7 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
               },
               {
                 label: 'OpenAI Whisper (transcription)',
-                costUSD: whisperCostUSD,
+                costEUR: whisperCostUSD * USD_TO_EUR,
                 count: voiceMessages,
                 unit: 'messages vocaux',
                 color: '#3B82F6',
@@ -257,8 +260,8 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
               },
             ].map((item) => {
               const Icon = item.icon;
-              const totalCostSum = deepseekCostUSD + whisperCostUSD || 1;
-              const pct = (item.costUSD / totalCostSum) * 100;
+              const totalCostSum = (deepseekCostUSD + whisperCostUSD) * USD_TO_EUR || 1;
+              const pct = (item.costEUR / totalCostSum) * 100;
               return (
                 <div key={item.label}>
                   <div className="flex items-center justify-between mb-1.5">
@@ -267,8 +270,8 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
                       <span className="font-mono text-sm text-white/70">{item.label}</span>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono text-sm font-bold text-white">${item.costUSD.toFixed(4)}</p>
-                      <p className="font-mono text-[10px] text-white/30">{usdToDzd(item.costUSD).toLocaleString('fr-DZ', { maximumFractionDigits: 0 })} DA</p>
+                      <p className="font-mono text-sm font-bold text-white">€{item.costEUR.toFixed(4)}</p>
+                      <p className="font-mono text-[10px] text-white/30">{eurToDzd(item.costEUR).toLocaleString('fr-DZ', { maximumFractionDigits: 0 })} DA</p>
                     </div>
                   </div>
                   <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
@@ -284,7 +287,7 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
             <div className="flex justify-between items-center">
               <span className="font-mono text-xs text-white/40">Total coûts API</span>
               <div className="text-right">
-                <p className="font-mono text-sm font-bold text-white">${estimatedTotalCostUSD.toFixed(4)}</p>
+                <p className="font-mono text-sm font-bold text-white">€{estimatedTotalCostEUR.toFixed(4)}</p>
                 <p className="font-mono text-[10px] text-white/30">≈ {totalCostDZD.toLocaleString('fr-DZ', { maximumFractionDigits: 0 })} DA</p>
               </div>
             </div>
@@ -324,11 +327,11 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
             <p className="font-mono text-[10px] text-white/30 uppercase tracking-wider">Coût unitaire estimé</p>
             <div className="flex justify-between font-mono text-xs">
               <span className="text-white/40">1 message texte</span>
-              <span className="text-white/60">$0.000154 ≈ 0.02 DA</span>
+              <span className="text-white/60">€0.000142 ≈ 0.04 DA</span>
             </div>
             <div className="flex justify-between font-mono text-xs">
               <span className="text-white/40">1 message vocal</span>
-              <span className="text-white/60">$0.003154 ≈ 0.43 DA</span>
+              <span className="text-white/60">€0.0029 ≈ 0.83 DA</span>
             </div>
             <div className="flex justify-between font-mono text-xs">
               <span className="text-white/40">1 token vendu (Starter)</span>
@@ -358,7 +361,7 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
                 { name: 'Agency', price: 22000, tokens: 15000 },
               ].map(pack => {
                 const pricePerToken = pack.price / pack.tokens;
-                const costPerTokenDZD = usdToDzd(0.000154); // coût DeepSeek par token consommé
+                const costPerTokenDZD = eurToDzd(0.000154 * USD_TO_EUR); // coût DeepSeek par token consommé (USD→EUR→DA)
                 const marginPerToken = pricePerToken - costPerTokenDZD;
                 const marginPct = (marginPerToken / pricePerToken) * 100;
                 return (
@@ -381,7 +384,7 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
           </table>
         </div>
         <p className="font-mono text-[10px] text-white/20 mt-3">
-          * Coût API estimé à $0.000154/message texte DeepSeek. Ne prend pas en compte les coûts d'infrastructure (Railway, Supabase).
+          * Coût API estimé à €0.000142/message texte DeepSeek. Ne prend pas en compte les coûts d'infrastructure (Railway, Supabase). Taux : 1 EUR = 285 DA.
         </p>
       </div>
     </div>

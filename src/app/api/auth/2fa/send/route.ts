@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { authRatelimit } from '@/lib/ratelimit';
 import { Resend } from 'resend';
+import bcrypt from 'bcryptjs';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const ORANGE = '#FF6B2C';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const { success } = await authRatelimit.limit(`2fa:send:${ip}`);
+    if (!success) return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+
     const { email } = await req.json();
     if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 });
 
@@ -14,11 +20,12 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ success: true }); // don't reveal if user exists
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedCode = await bcrypt.hash(code, 10);
     const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { twoFactorCode: code, twoFactorCodeExpiry: expiry },
+      data: { twoFactorCode: hashedCode, twoFactorCodeExpiry: expiry },
     });
 
     await resend.emails.send({

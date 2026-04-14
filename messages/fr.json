@@ -14,7 +14,7 @@
     "title1": "Automatisez",
     "title2": "vos ventes",
     "title3": "avec l'IA",
-    "subtitle": "Votre bot répond 24h/24, prend des commandes, parle Darija & arabe et gère vos clients en automatique.",
+    "subtitle": "Votre bot répond 24h/24, parle Darija & arabe et gère vos clients en automatique.",
     "cta": "Commencer gratuitement",
     "ctaSub": "25 tokens offerts • Sans carte bancaire",
     "telegram": "Bot intelligent disponible 24h/24",
@@ -39,7 +39,7 @@
     },
     "orders": {
       "title": "Prise de commandes",
-      "desc": "Le bot collecte automatiquement nom, téléphone, wilaya et commune pour chaque commande."
+      "desc": "Le bot collecte automatiquement nom, téléphone, wilaya et commune pour chaque commande. Disponible dès le pack Business."
     },
     "payment": {
       "title": "Paiement à l'usage",
@@ -88,8 +88,7 @@
       "starter": {
         "desc": "Parfait pour démarrer",
         "features": [
-          "500 messages texte",
-          "200 messages vocaux",
+          "500 tokens (ex: 500 textes ou 200 vocaux)",
           "Bot IA",
           "IA Multilingue (Darija, AR, FR, EN)"
         ]
@@ -97,8 +96,7 @@
       "business": {
         "desc": "Le plus populaire",
         "features": [
-          "2 000 messages texte",
-          "1 000 messages vocaux",
+          "2 000 tokens (ex: 2 000 textes ou 1 000 vocaux)",
           "Bot IA",
           "IA Multilingue",
           "Prise de commandes automatique",
@@ -110,8 +108,7 @@
       "pro": {
         "desc": "Volume élevé",
         "features": [
-          "5 000 messages texte",
-          "2 500 messages vocaux",
+          "5 000 tokens (ex: 5 000 textes ou 2 500 vocaux)",
           "Tout Business inclus",
           "Intégration sociétés de livraison",
           "Confirmation de commande automatique",
@@ -123,8 +120,7 @@
       "agency": {
         "desc": "Agences & revendeurs",
         "features": [
-          "15 000 messages texte",
-          "7 500 messages vocaux",
+          "15 000 tokens (ex: 15 000 textes ou 7 500 vocaux)",
           "Tout Pro inclus",
           "Suivi de colis automatique",
           "Bots illimités",
@@ -141,7 +137,7 @@
     "button": "Commencer gratuitement — 25 tokens offerts →"
   },
   "footer": {
-    "rights": "© 2025 YelhaDms. Tous droits réservés.",
+    "rights": "© 2026 YelhaDms. Tous droits réservés.",
     "privacy": "Confidentialité",
     "terms": "CGU",
     "contact": "Contact"

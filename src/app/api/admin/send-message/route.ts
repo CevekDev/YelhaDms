@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
               <h2 style="color:#111;margin-top:0;">${subject}</h2>
               <div style="color:#555;line-height:1.7;white-space:pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
-              <p style="color:#aaa;font-size:11px;margin:0;">© 2025 YelhaDms · mehdimerah06.pro@gmail.com</p>
+              <p style="color:#aaa;font-size:11px;margin:0;">© 2026 YelhaDms · ${process.env.SUPPORT_EMAIL ?? 'support@yelhadms.com'}</p>
             </div>
           </div>
         `,

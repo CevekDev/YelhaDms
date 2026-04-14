@@ -16,6 +16,16 @@ const PERSONALITY_IDS = [
   { id: 'commercial', emoji: '💰' },
   { id: 'formal', emoji: '🏛️' },
   { id: 'casual', emoji: '✌️' },
+  { id: 'luxury', emoji: '💎' },
+  { id: 'dz_friendly', emoji: '🤝' },
+  { id: 'tech', emoji: '💻' },
+  { id: 'urgent', emoji: '⚡' },
+];
+
+const COMMERCE_TYPES = [
+  { id: 'products', emoji: '📦' },
+  { id: 'services', emoji: '🛠️' },
+  { id: 'other', emoji: '🔄' },
 ];
 
 const PLATFORMS = [
@@ -49,6 +59,7 @@ type Connection = {
   businessName: string | null;
   customInstructions: string | null;
   botPersonality: any;
+  commerceType: string | null;
   isSuspended: boolean;
   predefinedMessages: PredefinedMessage[];
   detailResponses: DetailResponse[];
@@ -70,6 +81,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
   const [botName, setBotName] = useState(selectedConn?.botName || '');
   const [businessName, setBusinessName] = useState(selectedConn?.businessName || '');
   const [customInstructions, setCustomInstructions] = useState(selectedConn?.customInstructions || '');
+  const [commerceType, setCommerceType] = useState(selectedConn?.commerceType || 'products');
 
   // Personality
   const [personality, setPersonality] = useState<string>(
@@ -92,6 +104,7 @@ export default function BotSettingsClient({ connections }: { connections: Connec
     setBotName(conn.botName || '');
     setBusinessName(conn.businessName || '');
     setCustomInstructions(conn.customInstructions || '');
+    setCommerceType(conn.commerceType || 'products');
     setPersonality((conn.botPersonality as any)?.preset || 'professional');
     setCustomPersonality((conn.botPersonality as any)?.custom || '');
     setDetails(conn.detailResponses);
@@ -117,14 +130,23 @@ export default function BotSettingsClient({ connections }: { connections: Connec
   const handleSaveGeneral = () => {
     if (!selectedConn) return;
     setError('');
+    if (!botName.trim()) {
+      setError(t('errorBotNameRequired'));
+      return;
+    }
+    if (!businessName.trim()) {
+      setError(t('errorBusinessNameRequired'));
+      return;
+    }
     startTransition(async () => {
       const res = await fetch(`/api/connections/${selectedConn.id}/bot-settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          botName: botName.trim() || 'Assistant',
-          businessName: businessName.trim() || null,
+          botName: botName.trim(),
+          businessName: businessName.trim(),
           customInstructions: customInstructions.trim() || null,
+          commerceType,
           botPersonality: { preset: personality, custom: customPersonality.trim() || null },
         }),
       });
@@ -355,6 +377,45 @@ export default function BotSettingsClient({ connections }: { connections: Connec
                 placeholder="Ma Boutique DZ"
                 className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
               />
+            </div>
+          </div>
+
+          {/* Commerce type */}
+          <div>
+            <p className="font-mono text-xs text-white/50 mb-3">{t('commerceTypeLabel')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {COMMERCE_TYPES.map((ct) => (
+                <button
+                  key={ct.id}
+                  onClick={() => setCommerceType(ct.id)}
+                  className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all ${
+                    commerceType === ct.id
+                      ? 'border-orange-500/50'
+                      : 'border-white/[0.06] hover:border-white/20'
+                  }`}
+                  style={
+                    commerceType === ct.id
+                      ? { background: `${ORANGE}10` }
+                      : { background: 'rgba(255,255,255,0.02)' }
+                  }
+                >
+                  <span className="text-xl flex-shrink-0">{ct.emoji}</span>
+                  <div>
+                    <p
+                      className="font-mono text-sm font-semibold"
+                      style={commerceType === ct.id ? { color: ORANGE } : { color: 'rgba(255,255,255,0.8)' }}
+                    >
+                      {t(`commerceType${ct.id.charAt(0).toUpperCase()}${ct.id.slice(1)}` as any)}
+                    </p>
+                    <p className="font-mono text-xs text-white/30 mt-0.5">
+                      {t(`commerceType${ct.id.charAt(0).toUpperCase()}${ct.id.slice(1)}Desc` as any)}
+                    </p>
+                  </div>
+                  {commerceType === ct.id && (
+                    <Check className="w-4 h-4 ml-auto flex-shrink-0 mt-0.5" style={{ color: ORANGE }} />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 

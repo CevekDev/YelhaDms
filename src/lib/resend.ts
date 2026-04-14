@@ -201,6 +201,95 @@ export async function sendPasswordResetEmail(
   await sendMail(email, subjects[locale] || subjects.fr, baseTemplate(content));
 }
 
+// Low token balance warning
+export async function sendLowTokenEmail(email: string, name: string, balance: number) {
+  const content = `
+    <h2 style="color:#111;margin-top:0;">Attention ${name}, votre solde est bas !</h2>
+    <p style="color:#555;line-height:1.7;">
+      Il ne vous reste que <strong style="color:${ORANGE};">${balance} tokens</strong> sur votre compte YelhaDms.
+      Rechargez maintenant pour que votre bot continue de fonctionner sans interruption.
+    </p>
+    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:16px;margin:24px 0;text-align:center;">
+      <p style="margin:0;color:#856404;font-size:14px;font-family:monospace;font-weight:700;">
+        Solde restant : ${balance} tokens
+      </p>
+    </div>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${APP_URL}/fr/dashboard/tokens"
+         style="display:inline-block;background:${ORANGE};color:#fff;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-family:monospace;font-size:14px;">
+        Recharger maintenant
+      </a>
+    </div>
+  `;
+
+  await sendMail(email, `[YelhaDms] Solde bas — ${balance} tokens restants`, baseTemplate(content));
+}
+
+// Token gift email (admin grant)
+export async function sendTokenGiftEmail(email: string, name: string, amount: number, note?: string) {
+  const content = `
+    <h2 style="color:#111;margin-top:0;">Cadeau, ${name} !</h2>
+    <p style="color:#555;line-height:1.7;">L'equipe YelhaDms vous a offert des tokens gratuits.</p>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin:24px 0;text-align:center;">
+      <p style="margin:0;color:#888;font-size:13px;font-family:monospace;">TOKENS OFFERTS</p>
+      <p style="margin:10px 0 4px;font-size:42px;font-weight:800;color:${ORANGE};font-family:monospace;">${amount.toLocaleString()}</p>
+      <p style="margin:0;color:#888;font-size:13px;">tokens ajoutés à votre compte</p>
+    </div>
+    ${note ? `<p style="color:#555;line-height:1.7;">Note : <strong>${note}</strong></p>` : ''}
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${APP_URL}/fr/dashboard/tokens"
+         style="display:inline-block;background:${ORANGE};color:#fff;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-family:monospace;font-size:14px;">
+        Voir mon solde
+      </a>
+    </div>
+  `;
+
+  await sendMail(email, `[YelhaDms] ${amount.toLocaleString()} tokens offerts`, baseTemplate(content));
+}
+
+// Pack activation email (admin activated for WhatsApp payment)
+export async function sendPackActivationEmail(email: string, name: string, packName: string, tokens: number) {
+  const content = `
+    <h2 style="color:#111;margin-top:0;">Pack activé, ${name} !</h2>
+    <p style="color:#555;line-height:1.7;">Votre pack a été activé avec succès. Vos tokens sont disponibles immédiatement.</p>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin:24px 0;text-align:center;">
+      <p style="margin:0;color:#888;font-size:13px;font-family:monospace;">PACK ${packName.toUpperCase()}</p>
+      <p style="margin:10px 0 4px;font-size:42px;font-weight:800;color:${ORANGE};font-family:monospace;">${tokens.toLocaleString()}</p>
+      <p style="margin:0;color:#888;font-size:13px;">tokens ajoutés à votre compte</p>
+    </div>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${APP_URL}/fr/dashboard/tokens"
+         style="display:inline-block;background:${ORANGE};color:#fff;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-family:monospace;font-size:14px;">
+        Voir mon solde
+      </a>
+    </div>
+  `;
+
+  await sendMail(email, `[YelhaDms] Pack ${packName} activé — ${tokens.toLocaleString()} tokens`, baseTemplate(content));
+}
+
+// Welcome back email
+export async function sendWelcomeBackEmail(email: string, name: string) {
+  const content = `
+    <h2 style="color:#111;margin-top:0;">Te revoilà, ${name} !</h2>
+    <p style="color:#555;line-height:1.7;">
+      Content de vous revoir sur YelhaDms. Votre compte est toujours actif et vos données sont intactes.
+    </p>
+    <p style="color:#555;line-height:1.7;">
+      Vos bots, vos produits et vos conversations sont exactement là où vous les avez laissés.
+      Reprenez là où vous en étiez et continuez à automatiser vos ventes.
+    </p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${APP_URL}/fr/dashboard"
+         style="display:inline-block;background:${ORANGE};color:#fff;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-family:monospace;font-size:14px;">
+        Accéder à mon espace
+      </a>
+    </div>
+  `;
+
+  await sendMail(email, `[YelhaDms] Te revoilà parmi nous !`, baseTemplate(content));
+}
+
 // Welcome email for new Google OAuth users
 export async function sendWelcomeEmail(email: string, name: string) {
   const content = `

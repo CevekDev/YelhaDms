@@ -48,7 +48,13 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          phone: data.phone || undefined,
+          dateOfBirth: data.dateOfBirth || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -153,6 +159,37 @@ export default function SignUpPage() {
           />
           {errors.confirmPassword && (
             <p className="text-xs text-red-400 mt-1 font-mono">{errors.confirmPassword.message}</p>
+          )}
+        </div>
+
+        {/* Phone */}
+        <div>
+          <label className="block text-xs font-mono text-white/50 mb-1.5">
+            Téléphone <span className="text-white/20">(optionnel)</span>
+          </label>
+          <AuthInput
+            type="tel"
+            placeholder="+213 6XX XXX XXX"
+            error={!!errors.phone}
+            {...register('phone')}
+          />
+          {errors.phone && (
+            <p className="text-xs text-red-400 mt-1 font-mono">{errors.phone.message}</p>
+          )}
+        </div>
+
+        {/* Date of birth */}
+        <div>
+          <label className="block text-xs font-mono text-white/50 mb-1.5">
+            Date de naissance <span className="text-white/20">(optionnel)</span>
+          </label>
+          <AuthInput
+            type="date"
+            error={!!errors.dateOfBirth}
+            {...register('dateOfBirth')}
+          />
+          {errors.dateOfBirth && (
+            <p className="text-xs text-red-400 mt-1 font-mono">{errors.dateOfBirth.message}</p>
           )}
         </div>
 

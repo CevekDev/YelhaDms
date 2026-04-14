@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 
 /** Nombre max de messages conservés par conversation */
-const MAX_MESSAGES = 100;
+const MAX_MESSAGES = 30;
 
 /** Nombre de messages d'historique passés à l'IA */
 const HISTORY_MESSAGES = 20;
@@ -205,16 +205,32 @@ export async function getOrCreateConversation(opts: {
   });
 
   if (!conversation) {
-    conversation = await prisma.conversation.create({
-      data: {
-        connectionId,
-        externalId: contactId,
-        platform,
-        contactId,
-        contactName: contactName || null,
-      },
-    });
-  } else if (contactName && !conversation.contactName) {
+    try {
+      conversation = await prisma.conversation.create({
+        data: {
+          connectionId,
+          externalId: contactId,
+          platform,
+          contactId,
+          contactName: contactName || null,
+        },
+      });
+    } catch (err: any) {
+      // P2002: unique constraint violation — conversation was created concurrently
+      if (err?.code === 'P2002') {
+        conversation = await prisma.conversation.findFirst({
+          where: { connectionId, contactId },
+        });
+        if (!conversation) throw err; // unexpected
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  if (!conversation) throw new Error('Failed to get or create conversation');
+
+  if (contactName && !conversation.contactName) {
     conversation = await prisma.conversation.update({
       where: { id: conversation.id },
       data: { contactName },

@@ -37,6 +37,7 @@ type Conversation = {
   needsHelp: boolean;
   spamScore: number;
   messages: Message[];
+  lastMessagePreview?: string | null;
 };
 
 type Connection = {
@@ -298,6 +299,8 @@ export default function ConversationsClient({ connections }: { connections: Conn
               filteredConvs.map((conv) => {
                 const lastMsg = conv.messages[0];
                 const state = getConvState(conv);
+                const preview = conv.lastMessagePreview
+                  ?? (lastMsg ? `${lastMsg.direction === 'outbound' ? '🤖 ' : ''}${lastMsg.content}` : null);
                 return (
                   <button
                     key={conv.id}
@@ -334,12 +337,9 @@ export default function ConversationsClient({ connections }: { connections: Conn
                       {state.needsHelp && (
                         <p className="font-mono text-[10px] text-red-400 mb-0.5">⚠️ {t('needsHelp')}</p>
                       )}
-                      {lastMsg && (
-                        <p className="font-mono text-[11px] text-white/30 truncate">
-                          {lastMsg.direction === 'outbound' ? '🤖 ' : '👤 '}
-                          {lastMsg.content}
-                        </p>
-                      )}
+                      <p className="font-mono text-xs text-white/30 truncate mt-0.5">
+                        {preview ?? '...'}
+                      </p>
                     </div>
                   </button>
                 );

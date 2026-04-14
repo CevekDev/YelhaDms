@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { authRatelimit } from '@/lib/ratelimit';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const { success } = await authRatelimit.limit(`2fa:verify:${ip}`);
+    if (!success) return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+
     const { email, code } = await req.json();
     if (!email || !code) return NextResponse.json({ error: 'Données manquantes' }, { status: 400 });
 
@@ -19,7 +25,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Code expiré. Demandez un nouveau code.' }, { status: 400 });
     }
 
-    if (user.twoFactorCode !== code.trim()) {
+    const isValid = await bcrypt.compare(code.trim(), user.twoFactorCode);
+    if (!isValid) {
       return NextResponse.json({ error: 'Code incorrect' }, { status: 400 });
     }
 

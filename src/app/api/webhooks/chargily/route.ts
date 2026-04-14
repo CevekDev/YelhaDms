@@ -31,9 +31,17 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = metadata.userId;
-    const tokenAmount = parseInt(metadata.tokens, 10);
     const packageId = metadata.packageId ?? '';
     const amountDZD = checkout.amount ?? 0;
+
+    // Re-validate token amount from DB if packageId is present (prevents metadata tampering)
+    let tokenAmount = parseInt(metadata.tokens, 10);
+    if (packageId) {
+      const pkg = await prisma.tokenPackage.findUnique({ where: { id: packageId } });
+      if (pkg) {
+        tokenAmount = pkg.tokens;
+      }
+    }
 
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.update({

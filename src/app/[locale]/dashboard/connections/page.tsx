@@ -320,6 +320,9 @@ export default function ConnectionsPage() {
                   <p className="text-sm font-mono text-white/60 truncate">{p.label}</p>
                   <p className="text-xs text-white/25 font-mono">Bientôt disponible</p>
                 </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full text-white/60 border border-white/10 bg-white/[0.06] flex-shrink-0">
+                  BIENTÔT
+                </span>
               </div>
             );
           })}
@@ -365,21 +368,23 @@ export default function ConnectionsPage() {
                 </div>
               ))}
 
-              {/* YouTube placeholder */}
-              <div
-                className="mt-5 rounded-xl p-4 flex items-center gap-3 border"
-                style={{ background: 'rgba(255,0,0,0.05)', borderColor: 'rgba(255,0,0,0.15)' }}
-              >
-                <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center flex-shrink-0">
-                  <ExternalLink className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-mono text-white/70">Tutoriel vidéo</p>
-                  <p className="text-xs text-white/30 font-mono">
-                    Lien vidéo à venir — contactez le support pour l&apos;activer
-                  </p>
-                </div>
-              </div>
+              {/* YouTube link — only shown when URL is configured */}
+              {t('help.youtubeUrl') && (
+                <a
+                  href={t('help.youtubeUrl')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 rounded-xl p-4 flex items-center gap-3 border no-underline"
+                  style={{ background: 'rgba(255,0,0,0.05)', borderColor: 'rgba(255,0,0,0.15)' }}
+                >
+                  <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center flex-shrink-0">
+                    <ExternalLink className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-mono text-white/70">{t('help.youtubeLabel')}</p>
+                  </div>
+                </a>
+              )}
 
               <div
                 className="rounded-xl p-4 mt-2"

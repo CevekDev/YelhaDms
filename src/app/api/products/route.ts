@@ -19,8 +19,14 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // Enforce per-user product limit
+  const count = await prisma.product.count({ where: { userId: session.user.id } });
+  if (count >= 500) {
+    return NextResponse.json({ error: 'Limite de 500 produits atteinte' }, { status: 400 });
+  }
+
   const body = await req.json();
-  const { name, brand, price, description, stock } = body;
+  const { name, brand, price, description, stock, sizes, models, colors } = body;
 
   if (!name?.trim()) return NextResponse.json({ error: 'Le nom est obligatoire' }, { status: 400 });
   if (price == null || isNaN(Number(price))) return NextResponse.json({ error: 'Le prix est obligatoire' }, { status: 400 });
@@ -33,6 +39,9 @@ export async function POST(req: NextRequest) {
       price: Number(price),
       description: description?.trim() || null,
       stock: stock != null && stock !== '' ? Number(stock) : null,
+      sizes: Array.isArray(sizes) ? sizes : [],
+      models: Array.isArray(models) ? models : [],
+      colors: Array.isArray(colors) ? colors : [],
     },
   });
 
@@ -44,7 +53,7 @@ export async function PUT(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { id, name, brand, price, description, stock, isActive } = body;
+  const { id, name, brand, price, description, stock, isActive, sizes, models, colors } = body;
 
   if (!id) return NextResponse.json({ error: 'ID manquant' }, { status: 400 });
 
@@ -59,6 +68,9 @@ export async function PUT(req: NextRequest) {
   if (description !== undefined) data.description = description?.trim() || null;
   if (stock !== undefined) data.stock = stock != null && stock !== '' ? Number(stock) : null;
   if (isActive !== undefined) data.isActive = isActive;
+  if (sizes !== undefined) data.sizes = Array.isArray(sizes) ? sizes : [];
+  if (models !== undefined) data.models = Array.isArray(models) ? models : [];
+  if (colors !== undefined) data.colors = Array.isArray(colors) ? colors : [];
 
   const product = await prisma.product.update({ where: { id }, data });
   return NextResponse.json(product);

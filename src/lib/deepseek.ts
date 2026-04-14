@@ -33,6 +33,18 @@ TON RÔLE : VENDEUR
 - Réponds aux questions produits avec précision (prix, stock, description).
 
 ══════════════════════════════════════
+STYLE DE RÉPONSE (OBLIGATOIRE)
+══════════════════════════════════════
+- Réponds TOUJOURS de façon concise et directe. Maximum 3-4 phrases courtes sauf si le client demande explicitement une explication détaillée.
+- Pas de listes à puces inutiles. Pas de formules de politesse longues à chaque message.
+- Va droit au but.
+
+══════════════════════════════════════
+TYPE DE COMMERCE : {commerceType}
+══════════════════════════════════════
+{commerceTypeInstructions}
+
+══════════════════════════════════════
 SALUTATIONS ET MESSAGES COURTS
 ══════════════════════════════════════
 Si le client envoie une simple salutation ("Bonjour", "Salam", "Cc ça va", "Wach", "Hello", etc.) :
@@ -143,6 +155,23 @@ const PERSONALITY_PRESETS: Record<string, string> = {
     'Adopte un ton institutionnel et sérieux. Utilise un vocabulaire soutenu, évite toute familiarité.',
   casual:
     'Parle naturellement, comme un ami serviable. Sois simple, direct et sympa.',
+  luxury:
+    'Adopte un ton haut de gamme, élégant et exclusif. Fais sentir au client qu\'il mérite le meilleur.',
+  dz_friendly:
+    'Parle en darija algérienne de façon naturelle et chaleureuse. Mix parfois darija et français comme dans la vraie vie.',
+  tech:
+    'Sois précis, factuel et orienté tech. Utilise des termes techniques quand approprié.',
+  urgent:
+    'Crée un sentiment d\'urgence bienveillant. Mets en avant les offres limitées et la disponibilité.',
+};
+
+const COMMERCE_TYPE_INSTRUCTIONS: Record<string, string> = {
+  products:
+    'Tu vends des produits physiques ou digitaux. Collecte les infos de livraison (wilaya, commune) pour chaque commande.',
+  services:
+    'Tu proposes des services. Pour chaque demande, recueille: le service souhaité, la disponibilité du client, et son numéro de téléphone. Pas de livraison physique.',
+  other:
+    'Adapte-toi au contexte de la conversation.',
 };
 
 export function buildSystemPrompt(params: {
@@ -155,6 +184,8 @@ export function buildSystemPrompt(params: {
   contactContext?: string;
   detailResponses?: string;
   isFirstMessage?: boolean;
+  commerceType?: string;
+  commerceTypeInstructions?: string;
 }): string {
   const {
     botName,
@@ -166,6 +197,8 @@ export function buildSystemPrompt(params: {
     contactContext = '',
     detailResponses = '',
     isFirstMessage = false,
+    commerceType = 'products',
+    commerceTypeInstructions,
   } = params;
 
   let personalityDesc = '';
@@ -198,13 +231,18 @@ export function buildSystemPrompt(params: {
 
   const contextSection = contactContext || '';
 
+  const resolvedCommerceType = commerceType || 'products';
+  const resolvedCommerceInstructions = commerceTypeInstructions || COMMERCE_TYPE_INSTRUCTIONS[resolvedCommerceType] || COMMERCE_TYPE_INSTRUCTIONS.products;
+
   let prompt = globalPrompt
     .replace(/{botName}/g, botName)
     .replace(/{businessName}/g, businessName)
     .replace('{botPersonality}', personalityDesc)
     .replace('{predefinedResponses}', predefinedResponses || 'Aucune')
     .replace('{customInstructions}', customInstructions || 'Aucune')
-    .replace('{isFirstMessage}', isFirstMessage ? 'oui' : 'non');
+    .replace('{isFirstMessage}', isFirstMessage ? 'oui' : 'non')
+    .replace('{commerceType}', resolvedCommerceType)
+    .replace('{commerceTypeInstructions}', resolvedCommerceInstructions);
 
   prompt += detailSection;
   prompt += contextSection;

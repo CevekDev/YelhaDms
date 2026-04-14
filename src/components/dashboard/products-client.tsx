@@ -20,6 +20,9 @@ type Product = {
   isActive: boolean;
   source: string;
   createdAt: Date;
+  sizes: string[];
+  models: string[];
+  colors: string[];
 };
 
 const EMPTY_FORM = {
@@ -28,7 +31,50 @@ const EMPTY_FORM = {
   price: '',
   description: '',
   stock: '',
+  sizes: [] as string[],
+  models: [] as string[],
+  colors: [] as string[],
 };
+
+/** Simple tag-input: type a value then press Enter or comma */
+function TagInput({
+  label, tags, onChange, placeholder,
+}: {
+  label: string; tags: string[]; onChange: (tags: string[]) => void; placeholder: string;
+}) {
+  const [input, setInput] = useState('');
+  const add = (raw: string) => {
+    const val = raw.trim();
+    if (val && !tags.includes(val)) onChange([...tags, val]);
+    setInput('');
+  };
+  const remove = (t: string) => onChange(tags.filter(x => x !== t));
+  return (
+    <div>
+      <label className="block font-mono text-xs text-white/50 mb-1.5">{label}</label>
+      <div className="flex flex-wrap gap-1.5 min-h-[40px] w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl focus-within:border-orange-500/40 transition-colors">
+        {tags.map(t => (
+          <span key={t} className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-mono text-white/80 bg-white/[0.08]">
+            {t}
+            <button type="button" onClick={() => remove(t)} className="text-white/30 hover:text-white/70"><X className="w-2.5 h-2.5" /></button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(input); }
+            if (e.key === 'Backspace' && !input && tags.length > 0) remove(tags[tags.length - 1]);
+          }}
+          onBlur={() => { if (input.trim()) add(input); }}
+          placeholder={tags.length === 0 ? placeholder : ''}
+          className="flex-1 min-w-[80px] bg-transparent text-sm font-mono text-white placeholder-white/20 focus:outline-none"
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function ProductsClient({
   initialProducts,
@@ -72,6 +118,9 @@ export default function ProductsClient({
       price: String(p.price),
       description: p.description || '',
       stock: p.stock != null ? String(p.stock) : '',
+      sizes: p.sizes || [],
+      models: p.models || [],
+      colors: p.colors || [],
     });
     setError('');
     setShowForm(true);
@@ -92,6 +141,9 @@ export default function ProductsClient({
         price: Number(form.price),
         description: form.description.trim() || null,
         stock: form.stock !== '' ? Number(form.stock) : null,
+        sizes: form.sizes,
+        models: form.models,
+        colors: form.colors,
         ...(editProduct ? { id: editProduct.id } : {}),
       };
 
@@ -415,6 +467,26 @@ export default function ProductsClient({
                   className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
                 />
               </div>
+
+              {/* Variants */}
+              <TagInput
+                label="Tailles (optionnel)"
+                tags={form.sizes}
+                onChange={(v) => setForm({ ...form, sizes: v })}
+                placeholder="S, M, L, XL…"
+              />
+              <TagInput
+                label="Modèles / Références (optionnel)"
+                tags={form.models}
+                onChange={(v) => setForm({ ...form, models: v })}
+                placeholder="Pro, Lite, Classic…"
+              />
+              <TagInput
+                label="Couleurs (optionnel)"
+                tags={form.colors}
+                onChange={(v) => setForm({ ...form, colors: v })}
+                placeholder="Rouge, Bleu, Noir…"
+              />
 
               {error && (
                 <div className="flex items-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5">

@@ -28,14 +28,7 @@ export async function PATCH(req: NextRequest) {
     data.name = body.name.trim();
   }
 
-  if (typeof body.twoFactorEnabled === 'boolean') {
-    data.twoFactorEnabled = body.twoFactorEnabled;
-    // Clear any lingering 2FA code when toggling
-    if (!body.twoFactorEnabled) {
-      data.twoFactorCode = null;
-      data.twoFactorCodeExpiry = null;
-    }
-  }
+  // Note: twoFactorEnabled must be toggled via a dedicated 2FA management endpoint, not here
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'Aucune donnée valide à mettre à jour' }, { status: 400 });

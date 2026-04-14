@@ -19,6 +19,10 @@ export async function POST(req: NextRequest) {
   if (!user || user.emailVerified) return NextResponse.json({ success: true }); // Silent for security
 
   const code = generateCode();
+  // Delete unused tokens before creating a new one
+  await prisma.userVerificationToken.deleteMany({
+    where: { userId: user.id, used: false },
+  });
   await prisma.userVerificationToken.create({
     data: { userId: user.id, token: code, expires: new Date(Date.now() + 24 * 60 * 60 * 1000) },
   });

@@ -12,32 +12,30 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
 
-  // Already verified — still issue auto-login token so they can log in
-  if (!user.emailVerified) {
-    const verificationToken = await prisma.userVerificationToken.findFirst({
-      where: {
-        userId: user.id,
-        token: code,
-        used: false,
-        expires: { gt: new Date() },
-      },
-    });
+  // Always verify the code — never issue a token without proof of code ownership
+  const verificationToken = await prisma.userVerificationToken.findFirst({
+    where: {
+      userId: user.id,
+      token: code,
+      used: false,
+      expires: { gt: new Date() },
+    },
+  });
 
-    if (!verificationToken) {
-      return NextResponse.json({ error: 'Code invalide ou expiré.' }, { status: 400 });
-    }
-
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: new Date() },
-      }),
-      prisma.userVerificationToken.update({
-        where: { id: verificationToken.id },
-        data: { used: true },
-      }),
-    ]);
+  if (!verificationToken) {
+    return NextResponse.json({ error: 'Code invalide ou expiré.' }, { status: 400 });
   }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: user.emailVerified ?? new Date() },
+    }),
+    prisma.userVerificationToken.update({
+      where: { id: verificationToken.id },
+      data: { used: true },
+    }),
+  ]);
 
   // Generate a short-lived auto-login token (5 minutes)
   const autoLoginToken = `al_${uuidv4()}`;

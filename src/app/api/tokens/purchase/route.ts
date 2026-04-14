@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createChargilyCheckout } from '@/lib/chargily';
-import { apiRatelimit } from '@/lib/ratelimit';
+import { apiRatelimit, getRateLimitKey } from '@/lib/ratelimit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,8 +12,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limit — skip if Redis is unavailable
     try {
-      const ip = req.headers.get('x-forwarded-for') ?? session.user.id;
-      const { success } = await apiRatelimit.limit(ip);
+      const { success } = await apiRatelimit.limit(getRateLimitKey(req, session.user.id));
       if (!success) return NextResponse.json({ error: 'Trop de requêtes, réessayez dans une minute.' }, { status: 429 });
     } catch (rlErr) {
       console.warn('[purchase] Rate limit check failed (skipping):', rlErr);

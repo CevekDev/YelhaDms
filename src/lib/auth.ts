@@ -21,8 +21,8 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   pages: {
-    signIn: '/fr/auth/signin',
-    error: '/fr/auth/error',
+    signIn: '/auth/signin',
+    error: '/auth/error',
   },
   providers: [
     GoogleProvider({
@@ -142,11 +142,54 @@ export const authOptions: NextAuthOptions = {
   ],
   events: {
     async signIn({ user, isNewUser, account }) {
-      // Send welcome email to new Google OAuth users
-      if (isNewUser && account?.provider === 'google' && user.email) {
-        try {
-          await sendWelcomeEmail(user.email, user.name || 'Utilisateur');
-        } catch {}
+      if (account?.provider === 'google' && user.email) {
+        if (isNewUser) {
+          // Nouveaux users Google → 50 tokens gratuits
+          const TRIAL_TOKENS = 50;
+          try {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { tokenBalance: TRIAL_TOKENS, trialUsed: true },
+            });
+            await prisma.tokenTransaction.create({
+              data: {
+                userId: user.id,
+                type: 'TRIAL',
+                amount: TRIAL_TOKENS,
+                balance: TRIAL_TOKENS,
+                description: `🎁 Essai gratuit — ${TRIAL_TOKENS} tokens offerts`,
+              },
+            });
+            await sendWelcomeEmail(user.email, user.name || 'Utilisateur');
+          } catch (e) {
+            console.error('[auth] Google new user setup failed:', e);
+          }
+        } else {
+          // Utilisateur existant qui revient via Google
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { trialUsed: true, name: true },
+          });
+          if (dbUser?.trialUsed === false) {
+            // A un compte mais n'a jamais eu les tokens (cas rare)
+            const TRIAL_TOKENS = 50;
+            try {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { tokenBalance: { increment: TRIAL_TOKENS }, trialUsed: true },
+              });
+              await prisma.tokenTransaction.create({
+                data: {
+                  userId: user.id,
+                  type: 'TRIAL',
+                  amount: TRIAL_TOKENS,
+                  balance: TRIAL_TOKENS,
+                  description: `🎁 Essai gratuit — ${TRIAL_TOKENS} tokens offerts`,
+                },
+              });
+            } catch {}
+          }
+        }
       }
     },
   },

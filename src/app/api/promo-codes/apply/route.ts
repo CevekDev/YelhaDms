@@ -23,54 +23,57 @@ export async function POST(req: NextRequest) {
   const { code } = parsed.data;
   const userId = session.user.id;
 
-  const promo = await prisma.promoCode.findUnique({
-    where: { code },
-    include: { uses: { where: { userId } } },
-  });
+  // TODO: discountPercent is not currently applied to purchases
+  let tokensAdded = 0;
+  let newBalance = 0;
 
-  if (!promo || !promo.isActive) {
-    return NextResponse.json({ error: 'Code promo invalide ou désactivé' }, { status: 404 });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const promo = await tx.promoCode.findUnique({
+        where: { code },
+        include: { uses: { where: { userId } } },
+      });
+
+      if (!promo || !promo.isActive) {
+        throw Object.assign(new Error('Code promo invalide ou désactivé'), { status: 404 });
+      }
+
+      if (promo.expiresAt && promo.expiresAt < new Date()) {
+        throw Object.assign(new Error('Ce code promo a expiré'), { status: 400 });
+      }
+
+      if (promo.usedCount >= promo.maxUses) {
+        throw Object.assign(new Error("Ce code promo a atteint son nombre maximum d'utilisations"), { status: 400 });
+      }
+
+      if (promo.uses.length > 0) {
+        throw Object.assign(new Error('Vous avez déjà utilisé ce code promo'), { status: 400 });
+      }
+
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      if (!user) throw Object.assign(new Error('Utilisateur introuvable'), { status: 404 });
+
+      const balance = user.tokenBalance + promo.tokens;
+
+      await tx.user.update({ where: { id: userId }, data: { tokenBalance: balance } });
+      await tx.tokenTransaction.create({
+        data: {
+          userId,
+          type: 'PROMO',
+          amount: promo.tokens,
+          balance,
+          description: `🎟️ Code promo ${code} — +${promo.tokens} tokens`,
+        },
+      });
+      await tx.promoCodeUse.create({ data: { promoCodeId: promo.id, userId } });
+      await tx.promoCode.update({ where: { id: promo.id }, data: { usedCount: { increment: 1 } } });
+
+      return { tokensAdded: promo.tokens, newBalance: balance };
+    });
+
+    return NextResponse.json({ success: true, tokensAdded: result.tokensAdded, newBalance: result.newBalance });
+  } catch (err: any) {
+    const status = err.status ?? 500;
+    return NextResponse.json({ error: err.message ?? 'Erreur serveur' }, { status });
   }
-
-  if (promo.expiresAt && promo.expiresAt < new Date()) {
-    return NextResponse.json({ error: 'Ce code promo a expiré' }, { status: 400 });
-  }
-
-  if (promo.usedCount >= promo.maxUses) {
-    return NextResponse.json({ error: 'Ce code promo a atteint son nombre maximum d\'utilisations' }, { status: 400 });
-  }
-
-  if (promo.uses.length > 0) {
-    return NextResponse.json({ error: 'Vous avez déjà utilisé ce code promo' }, { status: 400 });
-  }
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
-
-  const newBalance = user.tokenBalance + promo.tokens;
-
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: { tokenBalance: newBalance },
-    }),
-    prisma.tokenTransaction.create({
-      data: {
-        userId,
-        type: 'PROMO',
-        amount: promo.tokens,
-        balance: newBalance,
-        description: `🎟️ Code promo ${code} — +${promo.tokens} tokens`,
-      },
-    }),
-    prisma.promoCodeUse.create({
-      data: { promoCodeId: promo.id, userId },
-    }),
-    prisma.promoCode.update({
-      where: { id: promo.id },
-      data: { usedCount: { increment: 1 } },
-    }),
-  ]);
-
-  return NextResponse.json({ success: true, tokensAdded: promo.tokens, newBalance });
 }

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Tag, Plus, Loader2, X, Shuffle, Percent, Coins } from 'lucide-react';
+// Note: Percent and Coins kept for the promo code list display
 
 const PURPLE = '#a78bfa';
 
@@ -29,11 +30,9 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
   const [codes, setCodes] = useState<PromoCode[]>(initialCodes);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [promoType, setPromoType] = useState<'tokens' | 'discount'>('tokens');
   const [form, setForm] = useState({
     code: '',          // generated client-side only (avoid Math.random() SSR mismatch)
     tokens: '100',
-    discountPercent: '10',
     maxUses: '1',
     expiresAt: '',
     description: '',
@@ -58,17 +57,11 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
     try {
       const payload: any = {
         code: form.code.toUpperCase(),
+        tokens: Number(form.tokens),
         maxUses: Number(form.maxUses),
         expiresAt: form.expiresAt || undefined,
         description: form.description || undefined,
       };
-      if (promoType === 'tokens') {
-        payload.tokens = Number(form.tokens);
-        payload.discountPercent = null;
-      } else {
-        payload.tokens = 0;
-        payload.discountPercent = Number(form.discountPercent);
-      }
 
       const res = await fetch('/api/admin/promo-codes', {
         method: 'POST',
@@ -79,7 +72,7 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
       if (res.ok) {
         toast({ title: `✅ Code promo "${form.code}" créé !` });
         setShowForm(false);
-        setForm({ code: generateCode(), tokens: '100', discountPercent: '10', maxUses: '1', expiresAt: '', description: '' });
+        setForm({ code: generateCode(), tokens: '100', maxUses: '1', expiresAt: '', description: '' });
         await refreshCodes();
       } else {
         toast({ title: 'Erreur', description: json.error, variant: 'destructive' });
@@ -127,29 +120,6 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
           >
             <h3 className="font-mono font-semibold text-sm" style={{ color: PURPLE }}>Créer un code promo</h3>
 
-            {/* Type toggle */}
-            <div className="flex gap-2 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-              <button
-                onClick={() => setPromoType('tokens')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-mono text-xs font-medium transition-all"
-                style={promoType === 'tokens'
-                  ? { background: `${PURPLE}25`, color: PURPLE }
-                  : { color: 'rgba(255,255,255,0.35)' }}
-              >
-                <Coins className="w-3.5 h-3.5" />
-                Tokens offerts
-              </button>
-              <button
-                onClick={() => setPromoType('discount')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-mono text-xs font-medium transition-all"
-                style={promoType === 'discount'
-                  ? { background: `${PURPLE}25`, color: PURPLE }
-                  : { color: 'rgba(255,255,255,0.35)' }}
-              >
-                <Percent className="w-3.5 h-3.5" />
-                Réduction (%)
-              </button>
-            </div>
 
             <div className="grid grid-cols-2 gap-3">
               {/* Code */}
@@ -172,26 +142,17 @@ export default function AdminPromoPanel({ initialCodes }: { initialCodes: PromoC
                 </div>
               </div>
 
-              {/* Value (tokens or %) */}
+              {/* Tokens */}
               <div>
-                <label className="text-xs text-white/40 font-mono">
-                  {promoType === 'tokens' ? 'Tokens offerts' : 'Réduction (%)'}
-                </label>
+                <label className="text-xs text-white/40 font-mono">Tokens offerts</label>
                 <div className="relative mt-1">
                   <input
                     type="number"
-                    value={promoType === 'tokens' ? form.tokens : form.discountPercent}
-                    onChange={e => setForm(f => promoType === 'tokens'
-                      ? { ...f, tokens: e.target.value }
-                      : { ...f, discountPercent: e.target.value }
-                    )}
+                    value={form.tokens}
+                    onChange={e => setForm(f => ({ ...f, tokens: e.target.value }))}
                     min={1}
-                    max={promoType === 'discount' ? 100 : undefined}
-                    className={inputClass + ' pr-8'}
+                    className={inputClass}
                   />
-                  {promoType === 'discount' && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 font-mono text-sm">%</span>
-                  )}
                 </div>
               </div>
 

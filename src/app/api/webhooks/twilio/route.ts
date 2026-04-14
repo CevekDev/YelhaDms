@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendWhatsAppMessage, validateTwilioRequest } from '@/lib/twilio';
 import { callDeepSeek, buildSystemPrompt } from '@/lib/deepseek';
 import { transcribeAudio } from '@/lib/whisper';
+import { sendLowTokenEmail } from '@/lib/resend';
 import {
   getOrCreateConversation,
   upsertContactContext,
@@ -177,6 +178,8 @@ export async function POST(req: NextRequest) {
     const aiMessages = [...history, { role: 'user' as const, content: inboundContent }];
     const rawResponse = await callDeepSeek(aiMessages, systemPrompt);
 
+    logCost(user.id, messageType === 'voice' ? 'deepseek_voice' : 'deepseek_text');
+
     if (rawResponse.startsWith('[HORS_SUJET]')) {
       responseText = rawResponse.replace('[HORS_SUJET]', '').trim();
       const blocked = await handleSpam(conversation.id);
@@ -188,32 +191,46 @@ export async function POST(req: NextRequest) {
       }
     } else {
       responseText = rawResponse;
-      logCost(user.id, messageType === 'voice' ? 'deepseek_voice' : 'deepseek_text');
     }
   }
 
   if (!responseText) return new NextResponse(TWIML_OK, { headers: { 'Content-Type': 'text/xml' } });
 
-  // ── Débiter tokens ────────────────────────────────────────────────────────
+  // ── Débiter tokens (atomique) ─────────────────────────────────────────────
   if (tokensRequired > 0 && !user.unlimitedTokens) {
-    const updated = await prisma.user.updateMany({
-      where: { id: connection.userId, tokenBalance: { gte: tokensRequired } },
-      data: { tokenBalance: { decrement: tokensRequired } },
-    });
-    if (updated.count === 0) {
+    let newBalance: number;
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { id: connection.userId, tokenBalance: { gte: tokensRequired } },
+        data: { tokenBalance: { decrement: tokensRequired } },
+        select: { tokenBalance: true },
+      });
+      newBalance = updatedUser.tokenBalance;
+    } catch {
+      // Prisma throws when WHERE matches 0 rows (insufficient balance)
       await sendWhatsAppMessage(from, '⚠️ Solde insuffisant.');
       return new NextResponse(TWIML_OK, { headers: { 'Content-Type': 'text/xml' } });
     }
-    const updatedUser = await prisma.user.findUnique({ where: { id: connection.userId } });
     await prisma.tokenTransaction.create({
       data: {
         userId: connection.userId,
         type: 'USAGE',
         amount: -tokensRequired,
-        balance: updatedUser!.tokenBalance,
+        balance: newBalance,
         description: `WhatsApp — ${messageType}`,
       },
     });
+    // Low token warning (100 tokens threshold, sent once)
+    if (newBalance <= 100) {
+      const freshUser = await prisma.user.findUnique({
+        where: { id: connection.userId },
+        select: { lowTokenAlertSent: true, email: true, name: true },
+      });
+      if (freshUser && !freshUser.lowTokenAlertSent) {
+        await prisma.user.update({ where: { id: connection.userId }, data: { lowTokenAlertSent: true } });
+        try { await sendLowTokenEmail(freshUser.email, freshUser.name ?? '', newBalance); } catch {}
+      }
+    }
   }
 
   await sendWhatsAppMessage(from, responseText);
@@ -253,6 +270,7 @@ async function buildConnectionSystemPrompt(connection: any, contactContext: stri
     globalPrompt,
     contactContext,
     detailResponses: detailStr,
+    commerceType: connection.commerceType || 'products',
   });
 
   prompt += LANGUAGE_INSTRUCTION;
@@ -285,9 +303,9 @@ function isWithinBusinessHours(businessHours: any, now: Date, timezone: string):
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const day = dayNames[now.getDay()];
     const dayConfig = businessHours[day];
-    if (!dayConfig?.open) return false;
-    const [openH, openM] = dayConfig.start.split(':').map(Number);
-    const [closeH, closeM] = dayConfig.end.split(':').map(Number);
+    if (!dayConfig || dayConfig.closed) return false;
+    const [openH, openM] = (dayConfig.open ?? '').split(':').map(Number);
+    const [closeH, closeM] = (dayConfig.close ?? '').split(':').map(Number);
     const current = now.getHours() * 60 + now.getMinutes();
     return current >= openH * 60 + openM && current <= closeH * 60 + closeM;
   } catch {

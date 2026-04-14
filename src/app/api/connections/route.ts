@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { encrypt } from '@/lib/encryption';
-import { apiRatelimit } from '@/lib/ratelimit';
+import { apiRatelimit, getRateLimitKey } from '@/lib/ratelimit';
 import { z } from 'zod';
 
 const connectionSchema = z.discriminatedUnion('platform', [
@@ -42,8 +42,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const ip = req.headers.get('x-forwarded-for') ?? session.user.id;
-  const { success } = await apiRatelimit.limit(ip);
+  const { success } = await apiRatelimit.limit(getRateLimitKey(req, session.user.id));
   if (!success) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
 
   const body = await req.json();
@@ -53,6 +52,25 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
+
+  // Enforce per-platform bot limits based on plan
+  const BOT_LIMITS: Record<string, number> = {
+    FREE: 1, STARTER: 1, BUSINESS: 3, PRO: 5, AGENCY: Infinity,
+  };
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { planLevel: true },
+  });
+  const limit = BOT_LIMITS[user?.planLevel ?? 'FREE'] ?? 1;
+  const existingCount = await prisma.connection.count({
+    where: { userId: session.user.id, platform: data.platform },
+  });
+  if (existingCount >= limit) {
+    return NextResponse.json(
+      { error: `Limite de ${limit} bot(s) ${data.platform} atteinte pour votre plan.` },
+      { status: 403 }
+    );
+  }
 
   if (data.platform === 'TELEGRAM') {
     // Validate bot token against Telegram API

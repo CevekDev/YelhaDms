@@ -1,5 +1,6 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import type { NextRequest } from 'next/server';
 
 let redis: Redis | null = null;
 
@@ -26,3 +27,10 @@ export const apiRatelimit = new Ratelimit({
   analytics: true,
   prefix: 'ratelimit:api',
 });
+
+export function getRateLimitKey(req: NextRequest, userId?: string): string {
+  if (userId) return `user:${userId}`;
+  const forwarded = req.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',').at(-1)!.trim() : 'anonymous';
+  return `ip:${ip}`;
+}

@@ -29,7 +29,7 @@ export default function TermsPage({ params: { locale } }: { params: { locale: st
 
       <main className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold mb-2 font-mono">Conditions Générales d&apos;Utilisation</h1>
-        <p className="text-white/40 font-mono text-sm mb-12">Dernière mise à jour : Janvier 2025</p>
+        <p className="text-white/40 font-mono text-sm mb-12">Dernière mise à jour : Avril 2026</p>
 
         {[
           {
@@ -90,7 +90,7 @@ export default function TermsPage({ params: { locale } }: { params: { locale: st
 
       <footer className="border-t border-white/10 py-8">
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
-          <span className="font-mono text-xs text-white/30">© 2025 YelhaDms</span>
+          <span className="font-mono text-xs text-white/30">© 2026 YelhaDms</span>
           <div className="flex gap-5 font-mono text-xs">
             <Link href={`/${locale}/privacy`} className="text-white/30 hover:text-white/60 transition-colors">Confidentialité</Link>
             <Link href={`/${locale}/contact`} className="text-white/30 hover:text-white/60 transition-colors">Contact</Link>

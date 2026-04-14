@@ -4,7 +4,7 @@ import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Tag, Settings,
-  LogOut, Bot, Shield, BarChart3, Calculator,
+  LogOut, Bot, Shield, Calculator,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
@@ -74,16 +74,6 @@ export function AdminSidebar() {
           );
         })}
 
-        {/* Séparateur — accès espace client */}
-        <div className="pt-3 mt-3 border-t border-white/[0.04]">
-          <Link
-            href={`/${locale}/dashboard`}
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/25 hover:text-white/50 hover:bg-white/[0.03] transition-all"
-          >
-            <BarChart3 className="w-4 h-4 flex-shrink-0" />
-            <span>{tNav('dashboard')}</span>
-          </Link>
-        </div>
       </nav>
 
       {/* User info + déconnexion */}

@@ -16,15 +16,23 @@ export async function PUT(
   if (!connection) return NextResponse.json({ error: 'Bot introuvable' }, { status: 404 });
 
   const body = await req.json();
-  const { botName, businessName, customInstructions, botPersonality } = body;
+  const { botName, businessName, customInstructions, botPersonality, commerceType } = body;
+
+  if (!botName || !botName.trim()) {
+    return NextResponse.json({ error: 'Le nom du bot est obligatoire' }, { status: 400 });
+  }
+  if (!businessName || !businessName.trim()) {
+    return NextResponse.json({ error: 'Le nom de l\'entreprise est obligatoire' }, { status: 400 });
+  }
 
   const updated = await prisma.connection.update({
     where: { id: params.id },
     data: {
-      botName: botName || 'Assistant',
-      businessName: businessName || null,
+      botName: botName.trim(),
+      businessName: businessName.trim(),
       customInstructions: customInstructions || null,
       botPersonality: botPersonality || null,
+      ...(commerceType !== undefined ? { commerceType } : {}),
     },
   });
 

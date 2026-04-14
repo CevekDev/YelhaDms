@@ -18,7 +18,11 @@ const updateSchema = z.object({
   customInstructions: z.string().max(2000).optional(),
   welcomeMessage: z.string().max(1000).optional(),
   awayMessage: z.string().max(1000).optional(),
-  businessHours: z.any().optional(),
+  businessHours: z.record(z.string(), z.object({
+    open: z.string().optional(),
+    close: z.string().optional(),
+    closed: z.boolean().optional(),
+  })).optional(),
   timezone: z.string().optional(),
   isActive: z.boolean().optional(),
 });
@@ -48,6 +52,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+
+  // Validate botName is not empty if provided
+  if (parsed.data.botName !== undefined && !parsed.data.botName.trim()) {
+    return NextResponse.json({ error: 'Le nom du bot est obligatoire' }, { status: 400 });
+  }
 
   const updated = await prisma.connection.update({ where: { id: params.id }, data: parsed.data });
   const { telegramBotToken, ...safe } = updated;

@@ -57,6 +57,8 @@ model User {
   password              String?
   role                  UserRole  @default(USER)
   tokenBalance          Int       @default(0)
+  phone                 String?
+  dateOfBirth           DateTime?
   failedLoginAttempts   Int       @default(0)
   lockedUntil           DateTime?
   twoFactorEnabled      Boolean   @default(false)
@@ -68,6 +70,7 @@ model User {
   unlimitedTokens       Boolean   @default(false)
   trialUsed             Boolean   @default(false)
   planLevel             PlanLevel @default(FREE)
+  lowTokenAlertSent     Boolean   @default(false)  // email envoyé quand balance ≤ 100
   isPartner             Boolean   @default(false)
   partnerTokenLimit     Int?      // tokens mensuels alloués au partenaire (null = illimité)
   partnerSince          DateTime?
@@ -173,7 +176,10 @@ model Connection {
   botName              String    @default("Assistant")
   botPersonality       Json?
   customInstructions   String?   @db.Text
+  commerceType         String?   // "products" | "services" | "other"
+  commerceTypeDetails  Json?     // pour le mode services
   isSuspended          Boolean   @default(false)
+  telegramWebhookSecret String?  @db.Text  // AES-256-GCM encrypted
 
   // Business hours
   businessHours        Json?
@@ -370,6 +376,9 @@ model Product {
   imageUrl    String?
   source      String   @default("manual") // "manual" | "woocommerce" | "shopify"
   externalId  String?
+  sizes       String[]
+  models      String[]
+  colors      String[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
