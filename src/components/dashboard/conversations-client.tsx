@@ -174,7 +174,7 @@ export default function ConversationsClient({ connections }: { connections: Conn
 
   const handleBulkDelete = async () => {
     if (!confirm(`Supprimer ${selectedConvIds.size} conversation(s) ?`)) return;
-    for (const id of selectedConvIds) await handleDeleteConv(id);
+    for (const id of Array.from(selectedConvIds)) await handleDeleteConv(id);
     setSelectedConvIds(new Set());
     setBulkMode(false);
   };
