@@ -12,7 +12,7 @@ import { signOut, useSession } from 'next-auth/react';
 
 const ORANGE = '#FF6B2C';
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const t = useTranslations('dashboard');
   const tNav = useTranslations('nav');
   const pathname = usePathname();
@@ -56,6 +56,7 @@ export function Sidebar() {
       <Link
         key={item.href}
         href={item.href}
+        onClick={onClose}
         className={cn(
           'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all group',
           isActive

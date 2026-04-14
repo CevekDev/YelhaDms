@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email utilisateur manquant' }, { status: 404 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://yelha-production.up.railway.app';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://dms.yelha.net';
 
     const checkout = await createChargilyCheckout({
       amount: pkg.price,

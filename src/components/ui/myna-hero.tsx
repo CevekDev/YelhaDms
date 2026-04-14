@@ -115,6 +115,9 @@ export function MynaHero({ locale }: MynaHeroProps) {
             </SheetTrigger>
             <SheetContent side="right" className="bg-[#0A0A0A] border-white/10 text-white">
               <div className="flex flex-col gap-6 mt-8">
+                <div className="px-1">
+                  <LanguageSwitcher />
+                </div>
                 {navLinks.map(link => (
                   <a
                     key={link.href}
@@ -211,18 +214,18 @@ export function MynaHero({ locale }: MynaHeroProps) {
           transition={{ delay: 1.5, duration: 0.5 }}
           className="flex flex-col sm:flex-row items-center gap-4 mb-8"
         >
-          <Link href={`/${locale}/auth/signup`}>
-            <button
-              className="font-mono text-white text-sm px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 shadow-lg"
-              style={{ background: ORANGE, boxShadow: `0 0 24px ${ORANGE}40` }}
-            >
-              {t('hero.cta')}
-            </button>
+          <Link
+            href={`/${locale}/auth/signup`}
+            className="font-mono text-white text-sm px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-90 active:scale-95 shadow-lg"
+            style={{ background: ORANGE, boxShadow: `0 0 24px ${ORANGE}40` }}
+          >
+            {t('hero.cta')}
           </Link>
-          <a href="#pricing">
-            <button className="font-mono text-sm text-white/60 hover:text-white px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 transition-all">
-              {t('nav.pricing')}
-            </button>
+          <a
+            href="#pricing"
+            className="font-mono text-sm text-white/60 hover:text-white px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 transition-all"
+          >
+            {t('nav.pricing')}
           </a>
         </m.div>
 

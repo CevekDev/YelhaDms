@@ -1,16 +1,18 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { DashboardNavbar } from './navbar';
 import { X } from 'lucide-react';
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
 
   // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
-  }, []);
+  }, [pathname]);
 
   // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
@@ -39,7 +41,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           />
           {/* Sidebar panel */}
           <div className="absolute left-0 top-0 h-full z-50 flex">
-            <Sidebar />
+            <Sidebar onClose={() => setSidebarOpen(false)} />
             <button
               onClick={() => setSidebarOpen(false)}
               className="absolute top-4 right-[-44px] w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white/60 hover:text-white transition-colors"
