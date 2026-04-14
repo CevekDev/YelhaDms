@@ -162,8 +162,8 @@ export default function ConversationsClient({ connections }: { connections: Conn
     setDeletingId(convId);
     try {
       await fetch(`/api/conversations/${convId}`, { method: 'DELETE' });
-      if (selectedConn) {
-        const updated = { ...selectedConn, conversations: selectedConn.conversations.filter(c => c.id !== convId) };
+      if (selectedConnection) {
+        const updated = { ...selectedConnection, conversations: selectedConnection.conversations.filter(c => c.id !== convId) };
         setSelectedConnection(updated as any);
         if (selectedConv?.id === convId) { setSelectedConv(null); setMessages([]); setMobileView('list'); }
       }
