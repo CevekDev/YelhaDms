@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { packageId, locale = 'fr', paymentMethod } = body;
+    const { packageId, locale = 'fr' } = body;
 
     if (!packageId) {
       return NextResponse.json({ error: 'Package ID manquant' }, { status: 400 });
@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
         tokens: pkg.tokens.toString(),
       },
       locale: locale as 'fr' | 'ar' | 'en',
-      paymentMethod: paymentMethod as 'edahabia' | 'cib' | undefined,
     });
 
     return NextResponse.json({ url: checkout.checkout_url });
