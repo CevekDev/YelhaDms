@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import AdminUsersTable from '@/components/admin/users-table';
 import AdminTokensPanel from '@/components/admin/tokens-panel';
 import AdminMessagesPanel from '@/components/admin/messages-panel';
+import PackPanel from '@/components/admin/pack-panel';
 
 export default async function AdminUsersPage({ params: { locale } }: { params: { locale: string } }) {
   const session = await getServerSession(authOptions);
@@ -35,6 +36,7 @@ export default async function AdminUsersPage({ params: { locale } }: { params: {
 
       <AdminUsersTable users={allUsers} />
       <AdminTokensPanel users={allUsers} />
+      <PackPanel users={allUsers} />
       <AdminMessagesPanel users={allUsers} />
     </div>
   );

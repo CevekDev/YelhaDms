@@ -2,7 +2,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { Calculator, TrendingUp, TrendingDown, Euro, Zap, Mic, MessageSquare } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, Euro, Zap, Mic, MessageSquare, Wallet } from 'lucide-react';
+import AccountingControls from '@/components/admin/accounting-controls';
 
 const ORANGE = '#FF6B2C';
 
@@ -88,16 +89,16 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
   const totalCostDZD = eurToDzd(estimatedTotalCostEUR);
   const monthCostDZD = eurToDzd(estimatedMonthCostEUR);
 
-  const totalProfitDZD = totalRevenueDZD - totalCostDZD;
-  const monthProfitDZD = monthRevenueDZD - monthCostDZD;
-  const marginPercent = monthRevenueDZD > 0 ? (monthProfitDZD / monthRevenueDZD) * 100 : 0;
-
   // Dépenses internes (tokens non achetés, offerts gratuitement)
   const trialTokens = trialCount._sum.amount || 0;
   const grantedTokens = adminGrantCount._sum.amount || 0;
   // Coût théorique : tokens offerts × prix moyen Starter (5 DA/token)
   const AVG_TOKEN_PRICE = 5; // DA
   const internalCostDZD = (trialTokens + grantedTokens) * AVG_TOKEN_PRICE;
+
+  const totalProfitDZD = totalRevenueDZD - totalCostDZD - internalCostDZD;
+  const monthProfitDZD = monthRevenueDZD - monthCostDZD;
+  const marginPercent = monthRevenueDZD > 0 ? (monthProfitDZD / monthRevenueDZD) * 100 : 0;
 
   // Pack grants (comptés comme revenu)
   const packGrantRevenueDZD = allPurchases
@@ -114,6 +115,22 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
   const whisperCostUSD = (allCostLogs.length > 0
     ? allCostLogs.filter(c => c.type === 'whisper').reduce((a, c) => a + c.estimatedCost, 0)
     : voiceMessages * 0.003);
+
+  // Soldes API restants
+  let deepseekBalance: number | null = null;
+  let openaiBalance: number | null = null;
+  try {
+    const dsRes = await fetch('https://api.deepseek.com/user/balance', {
+      headers: { Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
+      cache: 'no-store',
+    });
+    if (dsRes.ok) {
+      const dsJson = await dsRes.json();
+      deepseekBalance = dsJson?.balance_infos?.[0]?.total_balance ?? dsJson?.balance ?? null;
+    }
+  } catch {}
+  // OpenAI doesn't have a public balance API — estimated from spend
+  const openaiEstimatedSpendUSD = whisperCostUSD;
 
   // Historique mensuel (6 derniers mois)
   const months: { label: string; revDZD: number; costDZD: number }[] = [];
@@ -387,6 +404,51 @@ export default async function AdminAccountingPage({ params: { locale } }: { para
           * Coût API estimé à €0.000142/message texte DeepSeek. Ne prend pas en compte les coûts d'infrastructure (Railway, Supabase). Taux : 1 EUR = 285 DA.
         </p>
       </div>
+
+      {/* Soldes API restants */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <h2 className="font-mono font-bold text-white mb-5 flex items-center gap-2">
+          <Wallet className="w-4 h-4" style={{ color: ORANGE }} />
+          Soldes API restants
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* DeepSeek */}
+          <div className="rounded-xl border border-white/[0.06] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-purple-400" />
+              <p className="font-mono text-xs text-white/50 uppercase tracking-wider">DeepSeek</p>
+            </div>
+            {deepseekBalance !== null ? (
+              <>
+                <p className="font-mono text-2xl font-bold text-white">
+                  ${Number(deepseekBalance).toFixed(4)}
+                </p>
+                <p className="font-mono text-xs text-white/30 mt-1">
+                  ≈ {eurToDzd(Number(deepseekBalance) * 0.92).toLocaleString('fr-DZ', { maximumFractionDigits: 0 })} DA
+                </p>
+              </>
+            ) : (
+              <p className="font-mono text-sm text-white/30">Indisponible (vérifier la clé API)</p>
+            )}
+          </div>
+          {/* OpenAI */}
+          <div className="rounded-xl border border-white/[0.06] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-blue-400" />
+              <p className="font-mono text-xs text-white/50 uppercase tracking-wider">OpenAI (Whisper)</p>
+            </div>
+            <p className="font-mono text-sm text-white/50">
+              Dépenses estimées : <span className="text-white font-bold">${openaiEstimatedSpendUSD.toFixed(4)}</span>
+            </p>
+            <p className="font-mono text-[10px] text-white/20 mt-1">
+              OpenAI ne fournit pas d&apos;API de solde publique. Consultez platform.openai.com/usage.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Réinitialisation des coûts */}
+      <AccountingControls />
     </div>
   );
 }

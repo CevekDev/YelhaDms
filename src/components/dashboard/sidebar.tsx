@@ -5,20 +5,27 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Plug, Coins, Settings, LogOut,
-  Shield, BarChart3, Bot, Users, ChevronRight,
+  Shield, BarChart3, Bot, ChevronRight, Lock,
   MessageSquare, Package, ShoppingCart, Truck, Settings2,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
+import { useState } from 'react';
+import { UpgradeModal } from './upgrade-modal';
 
 const ORANGE = '#FF6B2C';
 
-export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
+const PLAN_RANK: Record<string, number> = { FREE: 0, STARTER: 1, BUSINESS: 2, PRO: 3, AGENCY: 4 };
+
+export function Sidebar({ onClose, planLevel = 'FREE' }: { onClose?: () => void; planLevel?: string } = {}) {
   const t = useTranslations('dashboard');
   const tNav = useTranslations('nav');
   const pathname = usePathname();
   const params = useParams();
   const locale = params.locale as string;
   const { data: session } = useSession();
+  const [upgradeModal, setUpgradeModal] = useState<{ plan: string; feature: string } | null>(null);
+
+  const canAccess = (required: string) => PLAN_RANK[planLevel] >= PLAN_RANK[required];
 
   const mainNavItems = [
     { href: `/${locale}/dashboard`, label: t('overview'), icon: LayoutDashboard, exact: true },
@@ -30,10 +37,10 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   ];
 
   const secondaryNavItems = [
-    { href: `/${locale}/dashboard/connections`, label: t('connections'), icon: Plug },
-    { href: `/${locale}/dashboard/tokens`, label: t('tokens'), icon: Coins },
-    { href: `/${locale}/dashboard/analytics`, label: t('analytics'), icon: BarChart3 },
-    { href: `/${locale}/dashboard/settings`, label: t('settings'), icon: Settings },
+    { href: `/${locale}/dashboard/connections`, label: t('connections'), icon: Plug, required: 'FREE' },
+    { href: `/${locale}/dashboard/tokens`, label: t('tokens'), icon: Coins, required: 'FREE' },
+    { href: `/${locale}/dashboard/analytics`, label: t('analytics'), icon: BarChart3, required: 'BUSINESS' },
+    { href: `/${locale}/dashboard/settings`, label: t('settings'), icon: Settings, required: 'FREE' },
   ];
 
   if (session?.user.role === 'ADMIN') {
@@ -46,11 +53,27 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     icon: any;
     exact?: boolean;
     soon?: boolean;
+    required?: string;
   }) => {
     const Icon = item.icon;
     const isActive = item.exact
       ? pathname === item.href
       : pathname === item.href || pathname.startsWith(item.href + '/');
+    const locked = item.required && !canAccess(item.required) && !item.soon;
+
+    if (locked) {
+      return (
+        <button
+          key={item.href}
+          onClick={() => setUpgradeModal({ plan: item.required!, feature: item.label })}
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all w-full text-white/20 hover:text-white/40 hover:bg-white/[0.03]"
+        >
+          <Icon className="w-4 h-4 flex-shrink-0 text-white/15" />
+          <span className="flex-1 text-left">{item.label}</span>
+          <Lock className="w-3 h-3 text-white/15 flex-shrink-0" />
+        </button>
+      );
+    }
 
     return (
       <Link
@@ -84,6 +107,13 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
 
   return (
     <div className="flex h-full w-64 flex-col bg-[#0D0D10] border-r border-white/[0.06]">
+      {upgradeModal && (
+        <UpgradeModal
+          requiredPlan={upgradeModal.plan as any}
+          featureName={upgradeModal.feature}
+          onClose={() => setUpgradeModal(null)}
+        />
+      )}
       {/* Logo */}
       <div className="flex h-14 lg:h-16 items-center px-5 border-b border-white/[0.06] flex-shrink-0">
         <Link href={`/${locale}`} className="flex items-center gap-2.5">

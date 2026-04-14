@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { MynaHero } from '@/components/ui/myna-hero';
 import YelhaPricing from '@/components/ui/yelha-pricing';
 import { Bot, Globe, Shield, Coins, Send, Mic, ShoppingCart } from 'lucide-react';
+import { FaqSection } from '@/components/ui/faq-section';
 
 const ORANGE = '#FF6B2C';
 
@@ -122,6 +123,9 @@ export default async function LandingPage({ params: { locale } }: { params: { lo
         </div>
       </section>
 
+      {/* ── FAQ ────────────────────────────────────────────────────── */}
+      <FaqSection />
+
       {/* ── Pricing (dark) ───────────────────────────────────────────── */}
       <YelhaPricing locale={locale} />
 
@@ -142,6 +146,36 @@ export default async function LandingPage({ params: { locale } }: { params: { lo
           >
             {t('cta.button')}
           </Link>
+        </div>
+      </section>
+
+      {/* ── Help Us ──────────────────────────────────────────────────── */}
+      <section className="py-16 bg-[#0A0A0A] border-t border-white/[0.06]">
+        <div className="container max-w-2xl mx-auto px-6 text-center">
+          <span className="font-mono text-xs font-semibold uppercase tracking-widest" style={{ color: ORANGE }}>
+            Help Us Improve
+          </span>
+          <h2 className="font-mono text-2xl font-bold text-white mt-3 mb-2">
+            Une idée ? Un bug à signaler ?
+          </h2>
+          <p className="font-mono text-sm text-white/40 mb-8">
+            Votre retour nous aide à améliorer YelhaDms. Envoyez-nous vos suggestions ou signalez un problème.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="mailto:cvkdev@outlook.fr?subject=Suggestion%20YelhaDms"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-mono text-sm font-semibold text-white transition-all hover:opacity-90"
+              style={{ background: ORANGE }}
+            >
+              💡 Proposer une amélioration
+            </a>
+            <a
+              href="mailto:cvkdev@outlook.fr?subject=Bug%20YelhaDms"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-mono text-sm border border-white/15 text-white/60 hover:border-white/30 hover:text-white transition-all"
+            >
+              🐛 Signaler un bug
+            </a>
+          </div>
         </div>
       </section>
 

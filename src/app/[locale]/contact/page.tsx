@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bot, ArrowLeft, Mail, MessageCircle, Send, Clock } from 'lucide-react';
+import { Bot, ArrowLeft, Mail, Phone, Clock } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -8,7 +8,8 @@ export const metadata: Metadata = {
 };
 
 const ORANGE = '#FF6B2C';
-const EMAIL = 'mehdimerah06.pro@gmail.com';
+const EMAIL = 'cvkdev@outlook.fr';
+const WHATSAPP = '+33761179379';
 
 export default function ContactPage({ params: { locale } }: { params: { locale: string } }) {
   return (
@@ -52,12 +53,12 @@ export default function ContactPage({ params: { locale } }: { params: { locale: 
               cta: 'Envoyer un e-mail',
             },
             {
-              icon: Send,
-              title: 'Telegram',
-              value: '@YelhaDmsDZ',
-              desc: 'Support direct via Telegram',
-              href: 'https://t.me/YelhaDmsDZ',
-              cta: 'Ouvrir Telegram',
+              icon: Phone,
+              title: 'WhatsApp',
+              value: WHATSAPP,
+              desc: 'Support direct via WhatsApp',
+              href: `https://wa.me/${WHATSAPP.replace('+', '')}`,
+              cta: 'Ouvrir WhatsApp',
             },
             {
               icon: Clock,

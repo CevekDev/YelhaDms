@@ -71,8 +71,8 @@
     "title1": "Achetez des tokens,",
     "title2": "payez ce que vous utilisez",
     "subtitle": "Pas d'abonnement. Tokens sans expiration. Paiement en Dinars Algériens (DZD).",
-    "trial": "25 tokens offerts à l'inscription",
-    "trialSub": "regardez ce que vous pouvez faire avec 25 tokens",
+    "trial": "50 tokens offerts à l'inscription",
+    "trialSub": "testez toutes les fonctionnalités du pack Starter gratuitement",
     "popular": "★ Le plus populaire",
     "da": "DA",
     "tokens": "tokens",
@@ -90,19 +90,21 @@
         "features": [
           "500 tokens (ex: 500 textes ou 200 vocaux)",
           "Bot IA",
-          "IA Multilingue (Darija, AR, FR, EN)"
+          "IA Multilingue (Darija, AR, FR, EN)",
+          "Prise de commandes automatique",
+          "Instructions personnalisées",
+          "Confirmation de commande"
         ]
       },
       "business": {
         "desc": "Le plus populaire",
         "features": [
           "2 000 tokens (ex: 2 000 textes ou 1 000 vocaux)",
-          "Bot IA",
-          "IA Multilingue",
-          "Prise de commandes automatique",
+          "Tout Starter inclus",
           "Intégration Shopify & WooCommerce",
-          "Instructions personnalisées",
-          "Heures d'ouverture"
+          "Transcription vocale",
+          "Multi-bots IA",
+          "Support prioritaire"
         ]
       },
       "pro": {
@@ -134,7 +136,7 @@
     "title1": "Prêt à automatiser",
     "title2": "vos ventes ?",
     "subtitle": "Rejoignez les boutiques algériennes qui utilisent YelhaDms pour vendre plus.",
-    "button": "Commencer gratuitement — 25 tokens offerts →"
+    "button": "Commencer gratuitement — 50 tokens offerts →"
   },
   "footer": {
     "rights": "© 2026 YelhaDms. Tous droits réservés.",

@@ -68,6 +68,13 @@ export function DashboardNavbar({ onMenuClick }: DashboardNavbarProps) {
           </button>
         </Link>
 
+        <a
+          href="mailto:cvkdev@outlook.fr?subject=Feedback%20YelhaDms"
+          className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-white/40 hover:text-white/70 transition-colors px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/15"
+          title="Suggestion ou bug ?"
+        >
+          💡 Help Us
+        </a>
         <div className="hidden sm:block">
           <LanguageSwitcher />
         </div>

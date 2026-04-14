@@ -8,7 +8,7 @@ import { X, LayoutDashboard, MessageSquare, Settings2, Package, ShoppingCart } f
 
 const ORANGE = '#FF6B2C';
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({ children, planLevel = 'FREE' }: { children: React.ReactNode; planLevel?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const params = useParams();
@@ -41,7 +41,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-[#080810] overflow-hidden">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex flex-shrink-0">
-        <Sidebar />
+        <Sidebar planLevel={planLevel} />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -54,7 +54,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           />
           {/* Sidebar panel */}
           <div className="absolute left-0 top-0 h-full z-50 flex">
-            <Sidebar onClose={() => setSidebarOpen(false)} />
+            <Sidebar planLevel={planLevel} onClose={() => setSidebarOpen(false)} />
             <button
               onClick={() => setSidebarOpen(false)}
               className="absolute top-4 right-[-44px] w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white/60 hover:text-white transition-colors"
