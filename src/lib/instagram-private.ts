@@ -1,6 +1,10 @@
 import { IgApiClient } from 'instagram-private-api';
 import { encrypt, decrypt } from '@/lib/encryption';
 
+// Keep one client per session in memory to avoid re-deserializing on every poll
+const clientCache = new Map<string, { ig: IgApiClient; ts: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export interface IgMessage {
   itemId: string;
   senderId: string;
@@ -25,11 +29,23 @@ export async function loginInstagram(username: string, password: string): Promis
 
 /**
  * Build an IgApiClient from stored (encrypted) session data.
+ * Caches the client in memory for 5 minutes to avoid re-deserializing on every poll tick.
  */
 async function buildClient(encryptedSession: string): Promise<IgApiClient> {
+  const cached = clientCache.get(encryptedSession);
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.ig;
+
   const ig = new IgApiClient();
   const raw = decrypt(encryptedSession);
   await ig.state.deserialize(JSON.parse(raw));
+  clientCache.set(encryptedSession, { ig, ts: Date.now() });
+  // Clean up old entries
+  if (clientCache.size > 50) {
+    let oldestKey = '';
+    let oldestTs = Infinity;
+    clientCache.forEach((v, k) => { if (v.ts < oldestTs) { oldestTs = v.ts; oldestKey = k; } });
+    if (oldestKey) clientCache.delete(oldestKey);
+  }
   return ig;
 }
 
@@ -97,4 +113,21 @@ export async function getNewInstagramMessages(
   }
 
   return results;
+}
+
+/**
+ * Fetch the profile picture URL of a given user (by their numeric ID string).
+ * Returns null on failure.
+ */
+export async function getInstagramProfilePicUrl(
+  encryptedSession: string,
+  userId: string
+): Promise<string | null> {
+  try {
+    const ig = await buildClient(encryptedSession);
+    const info = await ig.user.info(userId);
+    return info.profile_pic_url ?? info.hd_profile_pic_url_info?.url ?? null;
+  } catch {
+    return null;
+  }
 }
