@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { encrypt } from '@/lib/encryption';
 import { apiRatelimit, getRateLimitKey } from '@/lib/ratelimit';
 import { z } from 'zod';
+import { getInstagramBusinessAccount } from '@/lib/instagram';
+import crypto from 'crypto';
 
 const connectionSchema = z.discriminatedUnion('platform', [
   z.object({
@@ -21,6 +23,15 @@ const connectionSchema = z.discriminatedUnion('platform', [
     businessName: z.string().max(100).optional(),
     telegramBotToken: z.string().min(20),
   }),
+  z.object({
+    platform: z.literal('INSTAGRAM'),
+    name: z.string().min(1).max(100),
+    botName: z.string().min(1).max(50).default('Assistant'),
+    businessName: z.string().max(100).optional(),
+    instagramAccessToken: z.string().min(20),
+    instagramUserId: z.string().min(5),
+    instagramUsername: z.string().optional(),
+  }),
 ]);
 
 export async function GET(req: NextRequest) {
@@ -34,7 +45,7 @@ export async function GET(req: NextRequest) {
   });
 
   // Strip sensitive fields before returning
-  const safe = connections.map(({ telegramBotToken, ...c }) => c);
+  const safe = connections.map(({ telegramBotToken, instagramAccessToken, ...c }) => c);
   return NextResponse.json(safe);
 }
 
@@ -70,6 +81,41 @@ export async function POST(req: NextRequest) {
       { error: `Limite de ${limit} bot(s) ${data.platform} atteinte pour votre plan.` },
       { status: 403 }
     );
+  }
+
+  if (data.platform === 'INSTAGRAM') {
+    // Validate token against Meta Graph API
+    let igAccount: { id: string; username: string };
+    try {
+      igAccount = await getInstagramBusinessAccount(data.instagramAccessToken);
+    } catch {
+      return NextResponse.json({ error: 'Token Instagram invalide ou expiré' }, { status: 400 });
+    }
+
+    const encryptedToken = encrypt(data.instagramAccessToken);
+    const verifyToken = crypto.randomUUID();
+
+    const connection = await prisma.connection.create({
+      data: {
+        userId: session.user.id,
+        platform: 'INSTAGRAM',
+        name: data.name,
+        botName: data.botName,
+        businessName: data.businessName,
+        instagramAccessToken: encryptedToken,
+        instagramUserId: data.instagramUserId || igAccount.id,
+        instagramUsername: data.instagramUsername || igAccount.username,
+        instagramWebhookVerifyToken: verifyToken,
+      },
+    });
+
+    return NextResponse.json({
+      id: connection.id,
+      platform: connection.platform,
+      name: connection.name,
+      webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/instagram`,
+      verifyToken,
+    });
   }
 
   if (data.platform === 'TELEGRAM') {

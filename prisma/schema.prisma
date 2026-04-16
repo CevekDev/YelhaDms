@@ -17,6 +17,7 @@ enum UserRole {
 enum Platform {
   WHATSAPP
   TELEGRAM
+  INSTAGRAM
 }
 
 enum PlanLevel {
@@ -181,6 +182,12 @@ model Connection {
   commerceTypeDetails  Json?     // pour le mode services
   isSuspended          Boolean   @default(false)
   telegramWebhookSecret String?  @db.Text  // AES-256-GCM encrypted
+
+  // Instagram (Meta Graph API)
+  instagramAccessToken        String?  @db.Text  // AES-256-GCM encrypted
+  instagramUserId             String?             // Instagram Business User ID
+  instagramUsername           String?
+  instagramWebhookVerifyToken String?  @db.Text  // random UUID, used to verify Meta webhook
 
   // Business hours
   businessHours        Json?

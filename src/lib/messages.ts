@@ -202,7 +202,7 @@ export async function saveInboundOnly(opts: {
 export async function getOrCreateConversation(opts: {
   connectionId: string;
   contactId: string;
-  platform: 'TELEGRAM' | 'WHATSAPP';
+  platform: 'TELEGRAM' | 'WHATSAPP' | 'INSTAGRAM';
   contactName?: string | null;
 }) {
   const { connectionId, contactId, platform, contactName } = opts;

@@ -348,7 +348,7 @@
     "configure": "Configure",
     "delete": "Delete",
     "whatsapp": "WhatsApp Business",
-    "instagram": "Instagram",
+    "instagram": "Instagram DM",
     "facebook": "Facebook",
     "telegram": "Telegram",
     "help": {
@@ -360,6 +360,23 @@
       "youtubeLabel": "Watch the tutorial video",
       "youtubeUrl": ""
     },
+    "instagramHelp": {
+      "title": "How to get an Instagram token?",
+      "step1": "Log in to developers.facebook.com and open your Meta app",
+      "step2": "Go to Instagram → Basic settings → Generate access token",
+      "step3": "In 'Generate access tokens', add your Instagram account as a tester",
+      "step4": "Copy the User ID and Access Token shown into the form",
+      "step5": "After creation, configure the webhook URL and Verify Token in Meta",
+      "testMode": "🧪 Test Mode — only tester accounts in Meta can trigger the bot"
+    },
+    "webhookUrl": "Webhook URL",
+    "verifyToken": "Verify Token",
+    "webhookInfo": "Configure these values in your Meta app → Instagram → Webhooks",
+    "instagramUserId": "Instagram User ID",
+    "instagramUserIdPlaceholder": "e.g. 17841400000000000",
+    "accessToken": "Access Token",
+    "accessTokenPlaceholder": "Meta Graph API access token",
+    "copied": "Copied!",
     "noBot": "No bot connected"
   },
   "botConfig": {
