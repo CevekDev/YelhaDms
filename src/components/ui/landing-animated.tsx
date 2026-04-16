@@ -1,7 +1,7 @@
 'use client';
 
 import { LazyMotion, domAnimation, m } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
+import { Send, Globe, Mic, ShoppingCart, Coins, Shield } from 'lucide-react';
 
 const ORANGE = '#FF6B2C';
 
@@ -15,8 +15,10 @@ const fadeUp: any = {
   }),
 };
 
-interface Feature {
-  icon: LucideIcon;
+// Icons defined client-side (cannot pass functions as props from Server Components)
+const FEATURE_ICONS = [Send, Globe, Mic, ShoppingCart, Coins, Shield];
+
+interface FeatureText {
   title: string;
   desc: string;
 }
@@ -31,7 +33,7 @@ interface Props {
   featuresBadge: string;
   featuresTitle: string;
   featuresSubtitle: string;
-  features: Feature[];
+  features: FeatureText[];
   howBadge: string;
   howTitle: string;
   steps: Step[];
@@ -75,7 +77,7 @@ export function LandingAnimated({ featuresBadge, featuresTitle, featuresSubtitle
           </m.div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => {
-              const Icon = f.icon;
+              const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
               return (
                 <m.div
                   key={f.title}

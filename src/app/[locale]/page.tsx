@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { MynaHero } from '@/components/ui/myna-hero';
 import YelhaPricing from '@/components/ui/yelha-pricing';
-import { Bot, Globe, Shield, Coins, Send, Mic, ShoppingCart } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { FaqSection } from '@/components/ui/faq-section';
 import { LandingAnimated } from '@/components/ui/landing-animated';
 
@@ -11,37 +11,14 @@ const ORANGE = '#FF6B2C';
 export default async function LandingPage({ params: { locale } }: { params: { locale: string } }) {
   const t = await getTranslations({ locale, namespace: undefined });
 
+  // Icons are defined client-side in LandingAnimated — only pass serializable text here
   const FEATURES = [
-    {
-      icon: Send,
-      title: t('features.telegram.title'),
-      desc: t('features.telegram.desc'),
-    },
-    {
-      icon: Globe,
-      title: t('features.multilang.title'),
-      desc: t('features.multilang.desc'),
-    },
-    {
-      icon: Mic,
-      title: t('features.voice.title'),
-      desc: t('features.voice.desc'),
-    },
-    {
-      icon: ShoppingCart,
-      title: t('features.orders.title'),
-      desc: t('features.orders.desc'),
-    },
-    {
-      icon: Coins,
-      title: t('features.payment.title'),
-      desc: t('features.payment.desc'),
-    },
-    {
-      icon: Shield,
-      title: t('features.security.title'),
-      desc: t('features.security.desc'),
-    },
+    { title: t('features.telegram.title'), desc: t('features.telegram.desc') },
+    { title: t('features.multilang.title'), desc: t('features.multilang.desc') },
+    { title: t('features.voice.title'), desc: t('features.voice.desc') },
+    { title: t('features.orders.title'), desc: t('features.orders.desc') },
+    { title: t('features.payment.title'), desc: t('features.payment.desc') },
+    { title: t('features.security.title'), desc: t('features.security.desc') },
   ];
 
   return (
