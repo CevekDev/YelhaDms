@@ -7,7 +7,7 @@ import {
   Plus, Send, Trash2, Loader2, Clock,
   MessageCircle, Instagram, Facebook, HelpCircle,
   CheckCircle, ChevronDown, ChevronUp, Copy, Check,
-  Bot, Hash, ExternalLink,
+  Bot, Hash, ExternalLink, AlertTriangle, X, ArrowRight,
 } from 'lucide-react';
 
 const ORANGE = '#FF6B2C';
@@ -52,6 +52,7 @@ function ConnectionsPageInner() {
     verifyToken: string;
     username: string;
   } | null>(null);
+  const [igNoAccountError, setIgNoAccountError] = useState(false);
 
   useEffect(() => { fetchConnections(); }, []);
 
@@ -70,15 +71,20 @@ function ConnectionsPageInner() {
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (igError) {
-      const errorMessages: Record<string, string> = {
-        denied: 'Connexion Instagram annulée.',
-        token_exchange: 'Échec de récupération du token Instagram.',
-        limit_reached: 'Limite de bots Instagram atteinte pour votre plan.',
-        server_error: 'Erreur serveur lors de la connexion Instagram.',
-        missing_params: 'Paramètres manquants dans le callback Instagram.',
-        no_instagram_account: 'Aucun compte Instagram Pro/Business trouvé sur vos pages Facebook. Assurez-vous que votre page Facebook est liée à un compte Instagram Pro.',
-      };
-      toast({ title: 'Erreur Instagram', description: errorMessages[igError] ?? igError, variant: 'destructive' });
+      if (igError === 'no_instagram_account') {
+        setIgNoAccountError(true);
+        setPlatformTab('INSTAGRAM');
+        setShowAdd(true);
+      } else {
+        const errorMessages: Record<string, string> = {
+          denied: 'Connexion Instagram annulée.',
+          token_exchange: 'Échec de récupération du token Instagram.',
+          limit_reached: 'Limite de bots Instagram atteinte pour votre plan.',
+          server_error: 'Erreur serveur lors de la connexion Instagram.',
+          missing_params: 'Paramètres manquants dans le callback Instagram.',
+        };
+        toast({ title: 'Erreur Instagram', description: errorMessages[igError] ?? igError, variant: 'destructive' });
+      }
       window.history.replaceState({}, '', window.location.pathname);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -291,6 +297,53 @@ function ConnectionsPageInner() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ── No Instagram Business Account error banner ── */}
+      {igNoAccountError && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(225,48,108,0.3)', background: 'rgba(225,48,108,0.06)' }}>
+          <div className="flex items-start gap-4 p-5">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(225,48,108,0.15)' }}>
+              <AlertTriangle className="w-5 h-5" style={{ color: IG_COLOR }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="font-mono font-semibold text-white text-sm">Compte Instagram Pro requis</p>
+                <button onClick={() => setIgNoAccountError(false)} className="text-white/20 hover:text-white/60 transition-colors flex-shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs font-mono text-white/50 mb-4 leading-relaxed">
+                Aucun compte Instagram <span className="text-white/80">Pro</span> ou <span className="text-white/80">Business</span> n&apos;est lié à vos pages Facebook. Le compte personnel Instagram ne supporte pas l&apos;API de messagerie.
+              </p>
+              <p className="text-[11px] font-mono text-white/40 mb-3 uppercase tracking-wider">Comment passer en compte Pro :</p>
+              <div className="space-y-2.5">
+                {[
+                  { n: '1', text: 'Ouvrez Instagram → Profil → ☰ Menu → Paramètres' },
+                  { n: '2', text: 'Compte → Passer à un compte professionnel' },
+                  { n: '3', text: 'Choisissez "Créateur" ou "Entreprise"' },
+                  { n: '4', text: 'Liez votre page Facebook à ce compte Instagram' },
+                  { n: '5', text: 'Revenez ici et reconnectez votre compte' },
+                ].map(step => (
+                  <div key={step.n} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold" style={{ background: 'rgba(225,48,108,0.2)', color: IG_COLOR }}>
+                      {step.n}
+                    </div>
+                    <p className="text-xs font-mono text-white/60 pt-0.5 leading-relaxed">{step.text}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => { setIgNoAccountError(false); }}
+                className="mt-4 flex items-center gap-2 font-mono text-xs px-4 py-2 rounded-xl transition-all hover:opacity-90"
+                style={{ background: 'rgba(225,48,108,0.15)', color: IG_COLOR, border: '1px solid rgba(225,48,108,0.25)' }}
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                Réessayer la connexion
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
