@@ -110,6 +110,9 @@ export default function ProductsClient({
   const [importUrl, setImportUrl] = useState('');
   const [importKey, setImportKey] = useState('');
   const [importSecret, setImportSecret] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState<{ imported: number; total: number; skipped: number } | null>(null);
 
   // Category management modal states
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
@@ -127,6 +130,52 @@ export default function ProductsClient({
       .then(data => { if (Array.isArray(data)) setCategories(data); })
       .catch(() => {});
   }, []);
+
+  const closeImportModal = () => {
+    setImportModal(null);
+    setImportUrl('');
+    setImportKey('');
+    setImportSecret('');
+    setImportError('');
+    setImportSuccess(null);
+  };
+
+  const handleImport = async () => {
+    if (!importUrl.trim()) { setImportError("L'URL de la boutique est requise"); return; }
+    if (!importKey.trim()) { setImportError('La clé API est requise'); return; }
+    if (importModal === 'woocommerce' && !importSecret.trim()) {
+      setImportError('Le Consumer Secret est requis');
+      return;
+    }
+    setImportError('');
+    setImportSuccess(null);
+    setImporting(true);
+    try {
+      const res = await fetch('/api/products/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: importModal,
+          url: importUrl.trim(),
+          key: importKey.trim(),
+          secret: importSecret.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({ error: 'Réponse invalide du serveur' }));
+      if (!res.ok) {
+        setImportError(data.error || "Erreur lors de l'import");
+        return;
+      }
+      setImportSuccess(data);
+      // Refresh product list
+      const updated = await fetch('/api/products').then(r => r.json()).catch(() => null);
+      if (Array.isArray(updated)) setProducts(updated);
+    } catch {
+      setImportError('Erreur réseau, veuillez réessayer');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const filtered = products.filter((p) => {
     const matchesSearch =
@@ -824,92 +873,131 @@ export default function ProductsClient({
       {/* Import Modal */}
       {importModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setImportModal(null)}
-          />
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={!importing ? closeImportModal : undefined} />
           <div className="relative w-full max-w-md bg-[#0D0D10] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-mono font-bold text-white text-lg">
                 {t('importFrom', { platform: importModal === 'woocommerce' ? 'WooCommerce' : 'Shopify' })}
               </h2>
               <button
-                onClick={() => setImportModal(null)}
-                className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-all"
+                onClick={closeImportModal}
+                disabled={importing}
+                className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-all disabled:opacity-30"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  {t('importStoreUrl')}
-                </label>
-                <input
-                  type="url"
-                  value={importUrl}
-                  onChange={(e) => setImportUrl(e.target.value)}
-                  placeholder={
-                    importModal === 'woocommerce'
-                      ? 'https://maboutique.com'
-                      : 'maboutique.myshopify.com'
-                  }
-                  className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
-                />
-              </div>
-              <div>
-                <label className="block font-mono text-xs text-white/50 mb-1.5">
-                  {importModal === 'woocommerce' ? t('importKey') : t('importApiKey')}
-                </label>
-                <input
-                  type="text"
-                  value={importKey}
-                  onChange={(e) => setImportKey(e.target.value)}
-                  placeholder="ck_..."
-                  className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
-                />
-              </div>
-              {importModal === 'woocommerce' && (
-                <div>
-                  <label className="block font-mono text-xs text-white/50 mb-1.5">{t('importSecret')}</label>
-                  <input
-                    type="text"
-                    value={importSecret}
-                    onChange={(e) => setImportSecret(e.target.value)}
-                    placeholder="cs_..."
-                    className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40"
-                  />
+            {importSuccess ? (
+              /* ── Success state ── */
+              <div className="text-center py-4">
+                <div className="w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-6 h-6 text-green-400" />
                 </div>
-              )}
-
-              <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.06]">
-                <p className="font-mono text-xs text-white/40 leading-relaxed">
-                  {t('importSecurityNote')}
+                <p className="font-mono font-semibold text-white mb-1">
+                  {importSuccess.imported} produit{importSuccess.imported > 1 ? 's' : ''} importé{importSuccess.imported > 1 ? 's' : ''} !
                 </p>
+                <p className="font-mono text-xs text-white/40">
+                  {importSuccess.total} trouvés · {importSuccess.skipped} déjà présents
+                </p>
+                <button
+                  onClick={closeImportModal}
+                  className="mt-6 w-full py-2.5 rounded-xl font-mono text-sm font-semibold text-white transition-all hover:opacity-90"
+                  style={{ background: ORANGE }}
+                >
+                  Fermer
+                </button>
               </div>
-            </div>
+            ) : (
+              /* ── Form state ── */
+              <>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-mono text-xs text-white/50 mb-1.5">
+                      {t('importStoreUrl')}
+                    </label>
+                    <input
+                      type="url"
+                      value={importUrl}
+                      onChange={(e) => { setImportUrl(e.target.value); setImportError(''); }}
+                      placeholder={importModal === 'woocommerce' ? 'https://maboutique.com' : 'maboutique.myshopify.com'}
+                      disabled={importing}
+                      className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-mono text-xs text-white/50 mb-1.5">
+                      {importModal === 'woocommerce' ? t('importKey') : t('importApiKey')}
+                    </label>
+                    <input
+                      type="text"
+                      value={importKey}
+                      onChange={(e) => { setImportKey(e.target.value); setImportError(''); }}
+                      placeholder={importModal === 'woocommerce' ? 'ck_...' : 'shpat_...'}
+                      disabled={importing}
+                      className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 disabled:opacity-50"
+                    />
+                  </div>
+                  {importModal === 'woocommerce' && (
+                    <div>
+                      <label className="block font-mono text-xs text-white/50 mb-1.5">{t('importSecret')}</label>
+                      <input
+                        type="text"
+                        value={importSecret}
+                        onChange={(e) => { setImportSecret(e.target.value); setImportError(''); }}
+                        placeholder="cs_..."
+                        disabled={importing}
+                        className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-orange-500/40 disabled:opacity-50"
+                      />
+                    </div>
+                  )}
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setImportModal(null)}
-                className="flex-1 py-2.5 rounded-xl font-mono text-sm text-white/50 border border-white/[0.08] hover:border-white/20 hover:text-white/70 transition-all"
-              >
-                {tCommon('cancel')}
-              </button>
-              <button
-                onClick={() => {
-                  // TODO: implement import API
-                  alert('Import en cours de développement');
-                  setImportModal(null);
-                }}
-                className="flex-1 py-2.5 rounded-xl font-mono text-sm font-semibold text-white transition-all hover:opacity-90 flex items-center justify-center gap-2"
-                style={{ background: ORANGE }}
-              >
-                <Package className="w-4 h-4" />
-                {t('import')}
-              </button>
-            </div>
+                  {importError && (
+                    <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="font-mono text-xs text-red-400 leading-relaxed">{importError}</p>
+                    </div>
+                  )}
+
+                  <div className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.06]">
+                    <p className="font-mono text-xs text-white/40 leading-relaxed">
+                      {t('importSecurityNote')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={closeImportModal}
+                    disabled={importing}
+                    className="flex-1 py-2.5 rounded-xl font-mono text-sm text-white/50 border border-white/[0.08] hover:border-white/20 hover:text-white/70 transition-all disabled:opacity-30"
+                  >
+                    {tCommon('cancel')}
+                  </button>
+                  <button
+                    onClick={handleImport}
+                    disabled={importing}
+                    className="flex-1 py-2.5 rounded-xl font-mono text-sm font-semibold text-white transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-60"
+                    style={{ background: ORANGE }}
+                  >
+                    {importing ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Import en cours…
+                      </>
+                    ) : (
+                      <>
+                        <Package className="w-4 h-4" />
+                        {t('import')}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
