@@ -305,6 +305,20 @@ export async function createEcotrackOrder(
   }
 }
 
+// ── Delete (cancel) an order on Ecotrack ────────────────────────────────────
+export async function deleteEcotrackOrder(url: string, token: string, tracking: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${url}/api/v1/delete/order?tracking=${encodeURIComponent(tracking)}`, {
+      method: 'DELETE',
+      headers: ecoHeaders(token),
+    });
+    const data = await res.json().catch(() => ({}));
+    return data.success === true || res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // ── Ship (validate) an existing Ecotrack order ───────────────────────────────
 export async function shipEcotrackOrder(url: string, token: string, tracking: string): Promise<boolean> {
   try {

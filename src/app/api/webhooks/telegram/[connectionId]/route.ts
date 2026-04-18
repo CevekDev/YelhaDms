@@ -173,6 +173,17 @@ export async function POST(
           }
         } else {
           replyMsg = `❌ Votre commande *#${pendingOrder.id.slice(-6).toUpperCase()}* a été *annulée*. N'hésitez pas à nous recontacter si vous changez d'avis.`;
+          // Remove from Ecotrack if tracking exists
+          if (pendingOrder.ecotrackTracking) {
+            const connEcoToken = (connection as any).ecotrackToken as string | null;
+            const connEcoUrl = (connection as any).ecotrackUrl as string | null;
+            if (connEcoToken && connEcoUrl) {
+              try {
+                const { deleteEcotrackOrder } = await import('@/lib/ecotrack');
+                await deleteEcotrackOrder(connEcoUrl, decrypt(connEcoToken), pendingOrder.ecotrackTracking);
+              } catch (e) { console.error('[Ecotrack] Delete order error', e); }
+            }
+          }
         }
 
         await prisma.order.update({ where: { id: pendingOrder.id }, data: { status: newStatus } });

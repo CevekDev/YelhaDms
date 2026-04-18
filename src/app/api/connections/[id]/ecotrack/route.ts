@@ -19,10 +19,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!connection) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const body = await req.json();
-  const { url, token, autoShip, remove } = body;
+  const { url, token, autoShip, remove, autoShipOnly } = body;
 
   if (remove) {
     await prisma.connection.update({ where: { id: params.id }, data: { ecotrackUrl: null, ecotrackToken: null, ecotrackAutoShip: false } });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Toggle auto-ship only (no token needed)
+  if (autoShipOnly) {
+    await prisma.connection.update({ where: { id: params.id }, data: { ecotrackAutoShip: !!autoShip } });
     return NextResponse.json({ ok: true });
   }
 
