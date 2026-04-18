@@ -65,28 +65,49 @@ export default async function DeliveryPage({ params: { locale } }: { params: { l
         </h2>
 
         {ecoConnections.length === 0 ? (
-          <div
-            className="rounded-2xl p-6 border"
-            style={{ borderColor: `${ORANGE}30`, background: `linear-gradient(135deg, ${ORANGE}08 0%, transparent 60%)` }}
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${ORANGE}20` }}>
-                <Truck className="w-6 h-6" style={{ color: ORANGE }} />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-mono font-bold text-white text-lg mb-1">Ecotrack non configuré</h2>
-                <p className="font-mono text-sm text-white/50 leading-relaxed mb-3">
-                  Configurez Ecotrack depuis une connexion pour activer la validation d&apos;adresse et la création automatique d&apos;expéditions.
-                </p>
+          <div className="space-y-3">
+            <p className="font-mono text-sm text-white/40 mb-4">
+              Sélectionnez une connexion pour y activer Ecotrack :
+            </p>
+            {connections.length === 0 ? (
+              <div
+                className="rounded-2xl p-6 border"
+                style={{ borderColor: `${ORANGE}30`, background: `linear-gradient(135deg, ${ORANGE}08 0%, transparent 60%)` }}
+              >
+                <p className="font-mono text-sm text-white/50">Aucune connexion bot trouvée. Créez d&apos;abord une connexion.</p>
                 <Link
                   href={`/${locale}/dashboard/connections`}
-                  className="inline-flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-lg border"
+                  className="inline-flex items-center gap-2 text-xs font-mono mt-3 px-3 py-1.5 rounded-lg border"
                   style={{ color: ORANGE, borderColor: `${ORANGE}40`, background: `${ORANGE}15` }}
                 >
-                  <Settings className="w-3 h-3" /> Configurer une connexion
+                  <Settings className="w-3 h-3" /> Créer une connexion
                 </Link>
               </div>
-            </div>
+            ) : (
+              connections.map(c => (
+                <Link
+                  key={c.id}
+                  href={`/${locale}/dashboard/connections/${c.id}`}
+                  className="flex items-center justify-between p-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/[0.06]">
+                      <Truck className="w-4 h-4 text-white/40 group-hover:text-white/70 transition-colors" />
+                    </div>
+                    <div>
+                      <p className="font-mono text-sm font-semibold text-white">{c.name}</p>
+                      <p className="font-mono text-xs text-white/30">{c.platform}</p>
+                    </div>
+                  </div>
+                  <span
+                    className="text-[10px] font-mono px-2 py-1 rounded-lg border flex items-center gap-1"
+                    style={{ color: ORANGE, borderColor: `${ORANGE}40`, background: `${ORANGE}15` }}
+                  >
+                    <Settings className="w-2.5 h-2.5" /> Configurer
+                  </span>
+                </Link>
+              ))
+            )}
           </div>
         ) : (
           <DeliveryClient connections={ecoConnections} locale={locale} />
@@ -96,11 +117,11 @@ export default async function DeliveryPage({ params: { locale } }: { params: { l
       {/* Other carriers — coming soon */}
       <div>
         <h2 className="font-mono text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
-          Autres transporteurs <span className="text-[10px] text-white/20 ml-2">BIENTÔT DISPONIBLES</span>
+          Autres transporteurs
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {OTHER_CARRIERS.map((carrier) => (
-            <div key={carrier.name} className="rounded-2xl p-5 border border-white/[0.06] bg-white/[0.02] opacity-50 cursor-not-allowed">
+            <div key={carrier.name} className="rounded-2xl p-5 border border-white/[0.06] bg-white/[0.02] opacity-60 cursor-not-allowed">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-2xl">{carrier.logo}</span>
                 <div>
@@ -113,7 +134,7 @@ export default async function DeliveryPage({ params: { locale } }: { params: { l
                 <div className="flex items-center gap-1 text-white/30"><Clock className="w-3 h-3" /><span>{carrier.delay}</span></div>
               </div>
               <div className="mt-3 pt-3 border-t border-white/[0.06]">
-                <span className="text-[10px] font-mono text-white/20 bg-white/[0.04] px-2 py-1 rounded-full">Bientôt disponible</span>
+                <span className="text-[10px] font-mono font-bold px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">NEW</span>
               </div>
             </div>
           ))}
