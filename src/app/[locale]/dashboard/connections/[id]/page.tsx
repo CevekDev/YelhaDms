@@ -36,6 +36,9 @@ export default function ConnectionConfigPage() {
   const [newResponse, setNewResponse] = useState('');
   const [addingMsg, setAddingMsg] = useState(false);
 
+  // Delivery fee
+  const [deliveryFee, setDeliveryFee] = useState(0);
+
   // Ecotrack
   const [ecotrackUrl, setEcotrackUrl] = useState('');
   const [ecotrackToken, setEcotrackToken] = useState('');
@@ -50,6 +53,7 @@ export default function ConnectionConfigPage() {
     const data = await res.json();
     setConnection(data);
     setForm({ name: data.name, businessName: data.businessName || '', botName: data.botName || 'Assistant', customInstructions: data.customInstructions || '', welcomeMessage: data.welcomeMessage || '', awayMessage: data.awayMessage || '', botPersonality: data.botPersonality || { formality: 5, friendliness: 5, responseLength: 5, emojiUsage: 3 }, isActive: data.isActive });
+    setDeliveryFee(data.deliveryFee ?? 0);
     setPredefinedMessages(data.predefinedMessages || []);
     // Fetch Ecotrack config
     const eco = await fetch(`/api/connections/${id}/ecotrack`).then(r => r.json()).catch(() => ({}));
@@ -62,7 +66,7 @@ export default function ConnectionConfigPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/connections/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch(`/api/connections/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, deliveryFee }) });
       if (res.ok) toast({ title: tCommon('success'), description: 'Configuration saved!' });
       else toast({ title: tCommon('error'), variant: 'destructive' });
     } finally { setSaving(false); }
@@ -148,6 +152,16 @@ export default function ConnectionConfigPage() {
           <div>
             <Label>{t('customInstructions')}</Label>
             <textarea className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={form.customInstructions} onChange={e => setForm((f: any) => ({ ...f, customInstructions: e.target.value }))} placeholder="Be funny, use emojis, keep responses under 3 sentences..." />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Livraison</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Frais de livraison (DA) <span className="text-xs text-muted-foreground">— affiché au client dans le récapitulatif</span></Label>
+            <Input type="number" min={0} value={deliveryFee} onChange={e => setDeliveryFee(Number(e.target.value))} placeholder="0" className="mt-1 max-w-[160px]" />
           </div>
         </CardContent>
       </Card>

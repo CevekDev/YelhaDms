@@ -352,6 +352,7 @@ export async function finalizeEcotrackOrder(
   deliveryType: 0 | 1,
   ecoToken: string,
   ecoUrl: string,
+  deliveryFee = 0,
 ): Promise<string> {
   const { orderData, orderId, wilayaId, communeName, wilayaName } = state;
   const nom = [orderData.prenom, orderData.nom].filter(Boolean).join(' ') || 'Client';
@@ -372,6 +373,8 @@ export async function finalizeEcotrackOrder(
     reference: orderId.slice(-8).toUpperCase(),
   });
 
+  const totalWithDelivery = montant + (deliveryFee || 0);
+
   if (result.success && result.tracking) {
     await prisma.order.update({
       where: { id: orderId },
@@ -380,17 +383,21 @@ export async function finalizeEcotrackOrder(
         ecotrackTracking: result.tracking,
         deliveryType,
         codeWilaya: wilayaId,
+        deliveryFee: deliveryFee || 0,
+        totalAmount: totalWithDelivery,
         notes: `Wilaya: ${wilayaName} — Commune: ${communeName}`,
-        status: 'CONFIRMED',
+        // Status stays PENDING — confirmed only when customer replies "oui"
       },
     });
     const mode = deliveryType === 0 ? 'à domicile' : 'en Stop Desk';
+    const deliveryLine = deliveryFee > 0 ? `\n📦 Livraison : *${deliveryFee.toLocaleString('fr-DZ')} DA*` : '';
     return (
-      `✅ *Commande confirmée !*\n\n` +
-      `📦 N° de suivi : *${result.tracking}*\n` +
+      `✅ *Commande enregistrée !*\n\n` +
       `🚚 Livraison ${mode} à *${communeName}*, ${wilayaName}\n` +
-      `💰 Montant : *${montant.toLocaleString('fr-DZ')} DA*\n\n` +
-      `Merci pour votre confiance ! 🙏`
+      `📦 Tracking : *${result.tracking}*` +
+      deliveryLine +
+      `\n💰 Total : *${totalWithDelivery.toLocaleString('fr-DZ')} DA*\n\n` +
+      `Votre commande est en attente de confirmation. Nous vous contacterons bientôt. 🙏`
     );
   }
 
@@ -400,8 +407,9 @@ export async function finalizeEcotrackOrder(
     data: {
       deliveryType,
       codeWilaya: wilayaId,
+      deliveryFee: deliveryFee || 0,
+      totalAmount: totalWithDelivery,
       notes: `Wilaya: ${wilayaName} — Commune: ${communeName}`,
-      status: 'CONFIRMED',
     },
   });
   return `✅ Votre commande a été enregistrée ! Nous vous contacterons pour confirmer les détails de livraison.`;
@@ -419,6 +427,7 @@ export async function handleEcotrackMessage(
   text: string,
   ecoToken: string,
   ecoUrl: string,
+  deliveryFee = 0,
 ): Promise<EcoHandlerResult> {
   const lower = text.toLowerCase().trim();
 
@@ -451,18 +460,18 @@ export async function handleEcotrackMessage(
     const isStop    = /stop.?desk|agence|bureau|point.?relais|nqta|أقرب|relais|^2$/.test(lower);
 
     if (isDomicile) {
-      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl);
+      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee);
       return { handled: true, responseText: msg, newState: null };
     }
     if (isStop) {
       if (state.hasStopDesk) {
-        const msg = await finalizeEcotrackOrder(state, 1, ecoToken, ecoUrl);
+        const msg = await finalizeEcotrackOrder(state, 1, ecoToken, ecoUrl, deliveryFee);
         return { handled: true, responseText: msg, newState: null };
       }
       // No stop desk in this commune — find alternatives
       const alts = await getStopDeskAlternatives(ecoUrl, ecoToken, state.wilayaId);
       if (alts.length === 0) {
-        const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl);
+        const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee);
         return { handled: true, responseText: `❌ Pas de Stop Desk disponible à ${state.wilayaName}. Livraison à domicile automatiquement.\n\n${msg}`, newState: null };
       }
       const list = alts.slice(0, 5).map((a, i) => `${i + 1}. ${a.nom}`).join('\n');
@@ -480,7 +489,7 @@ export async function handleEcotrackMessage(
   if (state.step === 'awaiting_stopdesk_choice') {
     const alts = state.stopDeskAlternatives ?? [];
     if (/domicile|maison|chez.?moi/.test(lower)) {
-      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl);
+      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee);
       return { handled: true, responseText: msg, newState: null };
     }
     const numMatch = lower.match(/^(\d+)$/);
@@ -490,7 +499,7 @@ export async function handleEcotrackMessage(
     const chosen = chosenByNum ?? chosenByName;
     if (chosen) {
       const newState: EcotrackState = { ...state, communeName: chosen.nom, codePostal: chosen.codePostal };
-      const msg = await finalizeEcotrackOrder(newState, 1, ecoToken, ecoUrl);
+      const msg = await finalizeEcotrackOrder(newState, 1, ecoToken, ecoUrl, deliveryFee);
       return { handled: true, responseText: msg, newState: null };
     }
     const list = alts.map((a, i) => `${i + 1}. ${a.nom}`).join('\n');

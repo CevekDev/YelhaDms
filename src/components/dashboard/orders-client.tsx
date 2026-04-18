@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import {
   ShoppingCart, Search, Eye, X, Package, Clock,
   CheckCircle, Truck, XCircle, User, Bot,
-  RotateCcw, Send, Loader2, Trash2, Square, CheckSquare, ChevronDown,
+  RotateCcw, Send, Loader2, Trash2, Square, CheckSquare, ChevronDown, CalendarClock,
 } from 'lucide-react';
 
 const ORANGE = '#FF6B2C';
@@ -27,7 +27,10 @@ type Order = {
   totalAmount: number | null;
   notes: string | null;
   trackingCode: string | null;
+  ecotrackTracking: string | null;
+  deliveryFee: number | null;
   confirmationSentAt: Date | null;
+  scheduledConfirmAt: Date | null;
   createdAt: Date;
   items: OrderItem[];
   connection: { name: string; platform: string };
@@ -79,6 +82,9 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
   const [isPending, startTransition] = useTransition();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [confirmRequestLoading, setConfirmRequestLoading] = useState<string | null>(null);
+  const [scheduleLoading, setScheduleLoading] = useState<string | null>(null);
+  const [scheduleMenuId, setScheduleMenuId] = useState<string | null>(null);
+  const [customDelay, setCustomDelay] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -138,6 +144,45 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
       showToast(t('sendError'), false);
     } finally {
       setConfirmRequestLoading(null);
+    }
+  };
+
+  const scheduleConfirm = async (orderId: string, delayHours: number) => {
+    setScheduleLoading(orderId);
+    setScheduleMenuId(null);
+    try {
+      const scheduledAt = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledConfirmAt: scheduledAt.toISOString() }),
+      });
+      if (!res.ok) throw new Error();
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, scheduledConfirmAt: scheduledAt } : o));
+      if (selectedOrder?.id === orderId) setSelectedOrder(prev => prev ? { ...prev, scheduledConfirmAt: scheduledAt } : null);
+      showToast(`Confirmation automatique dans ${delayHours}h`);
+    } catch {
+      showToast('Erreur lors de la programmation', false);
+    } finally {
+      setScheduleLoading(null);
+    }
+  };
+
+  const cancelSchedule = async (orderId: string) => {
+    setScheduleLoading(orderId);
+    try {
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledConfirmAt: null }),
+      });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, scheduledConfirmAt: null } : o));
+      if (selectedOrder?.id === orderId) setSelectedOrder(prev => prev ? { ...prev, scheduledConfirmAt: null } : null);
+      showToast('Confirmation automatique annulée');
+    } catch {
+      showToast('Erreur', false);
+    } finally {
+      setScheduleLoading(null);
     }
   };
 
@@ -566,6 +611,12 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
                           <StatusIcon className="w-3 h-3" />
                           {status.label}
                         </div>
+                        {order.scheduledConfirmAt && order.status === 'PENDING' && !order.confirmationSentAt && (
+                          <span className="font-mono text-[10px] text-purple-400/80 flex items-center gap-1">
+                            <CalendarClock className="w-2.5 h-2.5" />
+                            Auto {new Date(order.scheduledConfirmAt).toLocaleTimeString('fr-DZ', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
                         {order.confirmationSentAt && order.status === 'PENDING' && (
                           <span className="font-mono text-[10px] text-yellow-400/70 flex items-center gap-1">
                             <Send className="w-2.5 h-2.5" />
@@ -599,22 +650,64 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
                           </button>
                         ))}
 
-                        {/* Confirm request button (only for PENDING orders) */}
+                        {/* Confirm request + auto-schedule (only for PENDING orders) */}
                         {order.status === 'PENDING' && (
-                          <button
-                            onClick={() => sendConfirmRequest(order.id)}
-                            disabled={confirmRequestLoading === order.id}
-                            className="px-2.5 py-1 rounded-lg font-mono text-[11px] font-semibold transition-all hover:opacity-80 disabled:opacity-50 flex items-center gap-1"
-                            style={{ background: '#8B5CF620', color: '#8B5CF6', border: '1px solid #8B5CF640' }}
-                            title={order.confirmationSentAt ? 'Renvoyer la demande' : t('confirmRequest')}
-                          >
-                            {confirmRequestLoading === order.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                          <div className="flex items-center gap-1 relative">
+                            <button
+                              onClick={() => sendConfirmRequest(order.id)}
+                              disabled={confirmRequestLoading === order.id}
+                              className="px-2.5 py-1 rounded-lg font-mono text-[11px] font-semibold transition-all hover:opacity-80 disabled:opacity-50 flex items-center gap-1"
+                              style={{ background: '#8B5CF620', color: '#8B5CF6', border: '1px solid #8B5CF640' }}
+                            >
+                              {confirmRequestLoading === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                              {order.confirmationSentAt ? 'Renvoyer' : 'Confirmer'}
+                            </button>
+                            {/* Schedule auto-confirm */}
+                            {order.scheduledConfirmAt ? (
+                              <button
+                                onClick={() => cancelSchedule(order.id)}
+                                disabled={scheduleLoading === order.id}
+                                className="px-1.5 py-1 rounded-lg font-mono text-[10px] transition-all hover:opacity-80 flex items-center gap-1 text-yellow-400"
+                                style={{ background: '#F59E0B15', border: '1px solid #F59E0B30' }}
+                                title="Annuler la confirmation automatique"
+                              >
+                                <CalendarClock className="w-3 h-3" />
+                              </button>
                             ) : (
-                              <Send className="w-3 h-3" />
+                              <div className="relative">
+                                <button
+                                  onClick={() => setScheduleMenuId(scheduleMenuId === order.id ? null : order.id)}
+                                  className="px-1.5 py-1 rounded-lg font-mono text-[10px] transition-all hover:opacity-80 flex items-center gap-1 text-white/40"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  title="Confirmation automatique"
+                                >
+                                  <CalendarClock className="w-3 h-3" />
+                                </button>
+                                {scheduleMenuId === order.id && (
+                                  <div className="absolute right-0 top-7 z-50 bg-[#1a1a2e] border border-white/10 rounded-xl p-2 shadow-xl min-w-[160px]">
+                                    {[5, 10, 24, 48].map(h => (
+                                      <button key={h} onClick={() => scheduleConfirm(order.id, h)}
+                                        className="w-full text-left px-3 py-1.5 text-xs font-mono text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg">
+                                        Dans {h < 24 ? `${h}h` : `${h/24} jour${h > 24 ? 's' : ''}`}
+                                      </button>
+                                    ))}
+                                    <div className="flex gap-1 mt-1 px-1">
+                                      <input
+                                        value={customDelay}
+                                        onChange={e => setCustomDelay(e.target.value.replace(/\D/g, ''))}
+                                        placeholder="Xh"
+                                        className="w-12 text-xs font-mono bg-white/[0.05] border border-white/10 rounded px-1.5 py-1 text-white/70"
+                                      />
+                                      <button
+                                        onClick={() => { if (customDelay) { scheduleConfirm(order.id, Number(customDelay)); setCustomDelay(''); }}}
+                                        className="text-xs font-mono px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                                      >OK</button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             )}
-                            {order.confirmationSentAt ? 'Renvoyer' : 'Demander'}
-                          </button>
+                          </div>
                         )}
 
                         {/* View detail button */}
@@ -780,12 +873,20 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
 
               {/* Confirm request in modal */}
               {selectedOrder.status === 'PENDING' && (
-                <div className="pt-2 border-t border-white/[0.06]">
+                <div className="pt-2 border-t border-white/[0.06] space-y-2">
                   {selectedOrder.confirmationSentAt && (
-                    <p className="font-mono text-xs text-yellow-400/70 mb-2 flex items-center gap-1">
-                      <Send className="w-3 h-3" />
-                      Demande envoyée — en attente de réponse client
+                    <p className="font-mono text-xs text-yellow-400/70 flex items-center gap-1">
+                      <Send className="w-3 h-3" /> Demande envoyée — en attente de réponse client
                     </p>
+                  )}
+                  {selectedOrder.scheduledConfirmAt && !selectedOrder.confirmationSentAt && (
+                    <div className="flex items-center justify-between">
+                      <p className="font-mono text-xs text-purple-400 flex items-center gap-1">
+                        <CalendarClock className="w-3 h-3" />
+                        Auto le {new Date(selectedOrder.scheduledConfirmAt).toLocaleString('fr-DZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <button onClick={() => cancelSchedule(selectedOrder.id)} className="text-[10px] font-mono text-red-400 hover:text-red-300">Annuler</button>
+                    </div>
                   )}
                   <button
                     onClick={() => sendConfirmRequest(selectedOrder.id)}
@@ -793,13 +894,30 @@ export default function OrdersClient({ initialOrders }: { initialOrders: Order[]
                     className="w-full py-2.5 rounded-xl font-mono text-sm font-semibold transition-all hover:opacity-80 disabled:opacity-50 flex items-center justify-center gap-2"
                     style={{ background: '#8B5CF620', color: '#8B5CF6', border: '1px solid #8B5CF640' }}
                   >
-                    {confirmRequestLoading === selectedOrder.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
+                    {confirmRequestLoading === selectedOrder.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     {selectedOrder.confirmationSentAt ? 'Renvoyer la demande' : t('confirmRequestBtn')}
                   </button>
+                  {/* Auto-confirm scheduling */}
+                  {!selectedOrder.scheduledConfirmAt && !selectedOrder.confirmationSentAt && (
+                    <div>
+                      <p className="font-mono text-[10px] text-white/30 mb-1.5">Confirmation automatique dans :</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[5, 10, 24, 48].map(h => (
+                          <button key={h} onClick={() => scheduleConfirm(selectedOrder.id, h)}
+                            disabled={scheduleLoading === selectedOrder.id}
+                            className="px-2.5 py-1 rounded-lg font-mono text-[11px] text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 transition-all">
+                            {h < 24 ? `${h}h` : `${h/24}j`}
+                          </button>
+                        ))}
+                        <div className="flex gap-1">
+                          <input value={customDelay} onChange={e => setCustomDelay(e.target.value.replace(/\D/g, ''))} placeholder="Xh"
+                            className="w-12 text-xs font-mono bg-white/[0.05] border border-white/10 rounded-lg px-2 py-1 text-white/70" />
+                          <button onClick={() => { if (customDelay) { scheduleConfirm(selectedOrder.id, Number(customDelay)); setCustomDelay(''); }}}
+                            className="text-xs font-mono px-2 py-1 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30">OK</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

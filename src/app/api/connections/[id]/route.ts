@@ -25,6 +25,7 @@ const updateSchema = z.object({
   })).optional(),
   timezone: z.string().optional(),
   isActive: z.boolean().optional(),
+  deliveryFee: z.number().min(0).max(100000).optional(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {

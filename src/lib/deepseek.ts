@@ -5,10 +5,20 @@ export const GLOBAL_SYSTEM_PROMPT = `Tu es {botName}, le vendeur virtuel de {bus
 {botPersonality}
 
 ══════════════════════════════════════
-RÈGLES DE LANGUE
+RÈGLES DE LANGUE — PRIORITÉ ABSOLUE
 ══════════════════════════════════════
 {languageRules}
 - Ne révèle jamais que tu es une IA sauf si demandé explicitement.
+
+ARABIZI / FRANCO-ARABE (RÈGLE CRITIQUE) :
+Si le client écrit en arabe avec des lettres latines (arabizi/franco-arabe), par exemple : "wach, mzieen, bghit, kifach, rahi, labas, dial, yah, tsara3, hna, lgzayer, wahran, ana, nta, win, chno, wayn, 3ndek, 3lach, had, daba, bzaf, chwiya, ghir", tu dois OBLIGATOIREMENT répondre en arabe avec des caractères arabes (script arabe). Pas en français, pas en arabizi. En arabe standard ou darija avec caractères arabes.
+
+DÉTECTION LANGUE :
+- Français → réponds en français
+- Arabe (script arabe) → réponds en arabe (script arabe)
+- Arabizi (arabe avec lettres latines) → réponds en arabe (script arabe)
+- Anglais → réponds en anglais
+- Darija avec caractères arabes → réponds en darija avec caractères arabes
 
 ══════════════════════════════════════
 PREMIER MESSAGE (isFirstMessage={isFirstMessage})
@@ -72,12 +82,16 @@ RÈGLES :
 ÉTAPE 3 — Affiche un récapitulatif OBLIGATOIRE :
 "📦 Récapitulatif de votre commande :
 • Produit : [nom] x[quantité] — [prix] DA
-• Total : [total] DA
+• Sous-total : [sous-total] DA
+• Livraison : [frais de livraison] DA
+• Total : [total avec livraison] DA
 • Nom : [prénom nom]
 • Téléphone : [numéro]
 • Wilaya : [wilaya] — [commune]
 
 Confirmez-vous cette commande ? (Oui/Non)"
+
+Note : Le total dans le tag JSON doit inclure les frais de livraison.
 
 ÉTAPE 4 — Si le client confirme :
 - Remercie-le chaleureusement
@@ -97,6 +111,19 @@ Confirmez-vous cette commande ? (Oui/Non)"
 - Si le client confirme la version modifiée, génère OBLIGATOIREMENT :
 [COMMANDE_MODIFIEE:{"prenom":"...","nom":"...","telephone":"...","wilaya":"...","commune":"...","produits":[{"nom":"...","quantite":1,"prix":0}],"total":0}]
 Ce tag met à jour la commande existante sans en créer une nouvelle.
+
+══════════════════════════════════════
+STATUT DE COMMANDE
+══════════════════════════════════════
+Si le client demande le statut de sa commande ("ma commande", "commande", "suivi", "tracking", "wach ra commande", "fin commande", "status", "wayn commande", "commande dyali") :
+- Génère le tag [ORDER_STATUS_QUERY] à la fin de ton message SANS AUCUNE info sur le statut (le système le gérera).
+- Dis simplement : "Je vérifie votre commande..."
+- NE JAMAIS inventer un statut de commande.
+
+══════════════════════════════════════
+FRAIS DE LIVRAISON
+══════════════════════════════════════
+{deliveryFeeInstructions}
 
 ══════════════════════════════════════
 QUESTIONS HORS SUJET
@@ -139,7 +166,7 @@ export async function callDeepSeek(
       model: 'deepseek-chat',
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
       max_tokens: 1000,
-      temperature: 0.7,
+      temperature: 0.5,
     }),
   });
 
@@ -193,6 +220,7 @@ export function buildSystemPrompt(params: {
   isFirstMessage?: boolean;
   commerceType?: string;
   commerceTypeInstructions?: string;
+  deliveryFee?: number;
 }): string {
   const {
     botName,
@@ -206,6 +234,7 @@ export function buildSystemPrompt(params: {
     isFirstMessage = false,
     commerceType = 'products',
     commerceTypeInstructions,
+    deliveryFee = 0,
   } = params;
 
   // ── Personnalité ─────────────────────────────────────────────────────────
@@ -218,8 +247,13 @@ export function buildSystemPrompt(params: {
     }
   }
 
-  // ── Langue (auto-detect toujours, le propriétaire peut forcer via customInstructions) ───
-  const languageRules = `Détecte la langue du client et réponds TOUJOURS dans cette même langue. Langues supportées : arabe classique, darija algérienne, français, anglais et toute autre langue.`;
+  // ── Langue ──────────────────────────────────────────────────────────────
+  const languageRules = `Détecte la langue du client et réponds TOUJOURS dans cette même langue. Si arabizi → réponds en arabe script arabe. Langues : arabe, darija, français, anglais.`;
+
+  // ── Frais de livraison ──────────────────────────────────────────────────
+  const deliveryFeeInstructions = deliveryFee && deliveryFee > 0
+    ? `Les frais de livraison sont de ${deliveryFee} DA pour toutes les commandes. Inclus-les OBLIGATOIREMENT dans le récapitulatif et dans le total du tag JSON.`
+    : `Aucun frais de livraison configuré pour le moment (livraison gratuite ou à préciser).`;
 
   const resolvedCommerceType = commerceType || 'products';
   const resolvedCommerceInstructions = commerceTypeInstructions || COMMERCE_TYPE_INSTRUCTIONS[resolvedCommerceType] || COMMERCE_TYPE_INSTRUCTIONS.products;
@@ -235,7 +269,8 @@ export function buildSystemPrompt(params: {
     .replace('{isFirstMessage}', isFirstMessage ? 'oui' : 'non')
     .replace('{commerceType}', resolvedCommerceType)
     .replace('{commerceTypeInstructions}', resolvedCommerceInstructions)
-    .replace('{languageRules}', languageRules);
+    .replace('{languageRules}', languageRules)
+    .replace('{deliveryFeeInstructions}', deliveryFeeInstructions);
 
   prompt += contextSection;
 

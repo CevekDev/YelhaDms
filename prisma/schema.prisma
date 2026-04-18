@@ -197,6 +197,7 @@ model Connection {
   ecotrackUrl          String?
   ecotrackToken        String?   @db.Text  // AES-256-GCM encrypted
   ecotrackAutoShip     Boolean   @default(false)
+  deliveryFee          Float?    @default(0) // frais de livraison DA
 
   // Business hours
   businessHours        Json?
@@ -431,9 +432,11 @@ model Order {
   notes                String?     @db.Text
   trackingCode         String?
   confirmationSentAt   DateTime?
+  scheduledConfirmAt   DateTime?   // auto-confirmation programmée
   ecotrackTracking     String?
   deliveryType         Int?        // 0=domicile, 1=stop_desk
   codeWilaya           Int?
+  deliveryFee          Float?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 

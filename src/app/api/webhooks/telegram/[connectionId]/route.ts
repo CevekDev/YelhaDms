@@ -286,7 +286,8 @@ export async function POST(
 
     if (ecoState) {
       const ecoToken = decrypt(ecoRawToken!);
-      const result = await handleEcotrackMessage(ecoState, text, ecoToken, ecoUrl!);
+      const ecoDeliveryFee = (connection as any).deliveryFee as number | null ?? 0;
+      const result = await handleEcotrackMessage(ecoState, text, ecoToken, ecoUrl!, ecoDeliveryFee);
       if (result.handled) {
         const newMeta = { ...metaForEco, ecotrackState: result.newState ?? undefined };
         await upsertContactContext(connection.id, contactId, { contactName, metadata: newMeta });
@@ -321,7 +322,8 @@ export async function POST(
     const systemPrompt = await buildTelegramSystemPrompt(
       connection,
       buildContactContextString(contactCtx),
-      isFirstMessage
+      isFirstMessage,
+      (connection as any).deliveryFee ?? 0,
     );
 
     const aiMessages = [
@@ -476,6 +478,40 @@ export async function POST(
     }
   }
 
+  // ── Statut de commande [ORDER_STATUS_QUERY] ──────────────────────────────
+  if (responseText.includes('[ORDER_STATUS_QUERY]')) {
+    responseText = responseText.replace('[ORDER_STATUS_QUERY]', '').trim();
+    try {
+      const latestOrder = await prisma.order.findFirst({
+        where: { connectionId: connection.id, contactId },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, status: true, trackingCode: true, ecotrackTracking: true, totalAmount: true, createdAt: true },
+      });
+      if (latestOrder) {
+        const statusLabels: Record<string, string> = {
+          PENDING: '⏳ En attente de confirmation',
+          CONFIRMED: '✅ Confirmée',
+          PROCESSING: '🔄 En cours de traitement',
+          SHIPPED: '🚚 Expédiée',
+          DELIVERED: '📦 Livrée',
+          CANCELLED: '❌ Annulée',
+          RETURNED: '↩️ Retournée',
+        };
+        const tracking = latestOrder.ecotrackTracking || latestOrder.trackingCode;
+        const statusMsg = statusLabels[latestOrder.status] || latestOrder.status;
+        responseText = `📦 *Commande #${latestOrder.id.slice(-6).toUpperCase()}*\n` +
+          `Statut : ${statusMsg}\n` +
+          (tracking ? `Tracking : *${tracking}*\n` : '') +
+          (latestOrder.totalAmount ? `Total : *${latestOrder.totalAmount.toLocaleString('fr-DZ')} DA*\n` : '') +
+          `Date : ${latestOrder.createdAt.toLocaleDateString('fr-DZ')}`;
+      } else {
+        responseText = `Aucune commande trouvée pour votre compte.`;
+      }
+    } catch (e) {
+      console.error('[ORDER_STATUS] Error', e);
+    }
+  }
+
   if (!responseText) return NextResponse.json({ ok: true });
 
   // ── Facturer le coût API uniquement si une réponse est produite ───────────
@@ -544,7 +580,7 @@ async function sendTelegramMessage(token: string, chatId: number, text: string) 
   });
 }
 
-async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean): Promise<string> {
+async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean, deliveryFee = 0): Promise<string> {
   const predefinedStr = connection.predefinedMessages
     .map((m: any) => `Mots-clés: ${m.keywords.join(', ')}\nRéponse: ${m.response}`)
     .join('\n---\n');
@@ -576,6 +612,7 @@ async function buildTelegramSystemPrompt(connection: any, contactContext: string
     detailResponses: detailStr,
     isFirstMessage,
     commerceType: connection.commerceType || 'products',
+    deliveryFee,
   });
 
   // Build per-product detail map for the description section
