@@ -96,7 +96,7 @@ function parseShopify(rows: Record<string, string>[]): ImportedProduct[] {
   }
 
   const products: ImportedProduct[] = [];
-  for (const [handle, { row, sizes, colors, models }] of map) {
+  for (const [handle, { row, sizes, colors, models }] of Array.from(map.entries())) {
     const name = (row['Title'] || '').trim();
     if (!name) continue;
     const rawPrice = parseFloat(row['Variant Price'] || '0');
