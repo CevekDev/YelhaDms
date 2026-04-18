@@ -111,9 +111,9 @@ function parseShopify(rows: Record<string, string>[]): ImportedProduct[] {
       price: isNaN(rawPrice) ? 0 : rawPrice,
       description: bodyHtml ? stripHtml(bodyHtml).substring(0, 800) : null,
       stock: isNaN(rawStock) ? null : rawStock,
-      sizes: [...sizes],
-      colors: [...colors],
-      models: [...models],
+      sizes: Array.from(sizes),
+      colors: Array.from(colors),
+      models: Array.from(models),
       source: 'shopify',
     });
   }
