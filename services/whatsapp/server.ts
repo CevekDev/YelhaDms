@@ -1,8 +1,17 @@
 import express, { Request, Response } from 'express';
-import { Client, LocalAuth, Message } from 'whatsapp-web.js';
+import makeWASocket, {
+  DisconnectReason,
+  useMultiFileAuthState,
+  isJidBroadcast,
+  isJidGroup,
+  downloadMediaMessage,
+  type WASocket,
+} from '@whiskeysockets/baileys';
+import { Boom } from '@hapi/boom';
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException]', err);
@@ -23,9 +32,42 @@ if (!SERVICE_SECRET || !NEXT_APP_URL) {
   process.exit(1);
 }
 
+const SESSIONS_DIR = './.whatsapp-sessions';
+const SECRET_BUF = Buffer.from(SERVICE_SECRET);
+
+// Accept only safe IDs (prevents path traversal via connectionId/userId)
+const SAFE_ID = /^[a-zA-Z0-9_-]{1,128}$/;
+function isSafeId(v: unknown): v is string {
+  return typeof v === 'string' && SAFE_ID.test(v);
+}
+
+// ── Silent logger for Baileys ────────────────────────────────────────────────
+const silentLogger = {
+  level: 'silent' as const,
+  trace: () => {},
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: (obj: any, msg?: string) => {
+    if (msg) console.error('[Baileys]', msg, obj);
+    else console.error('[Baileys]', obj);
+  },
+  fatal: (obj: any, msg?: string) => {
+    if (msg) console.error('[Baileys]', msg, obj);
+    else console.error('[Baileys]', obj);
+  },
+  child: () => silentLogger,
+} as any;
+
 // ── Auth middleware ──────────────────────────────────────────────────────────
 function requireSecret(req: Request, res: Response, next: express.NextFunction) {
-  if (req.headers['x-whatsapp-secret'] !== SERVICE_SECRET) {
+  const header = req.headers['x-whatsapp-secret'];
+  if (typeof header !== 'string') {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const got = Buffer.from(header);
+  if (got.length !== SECRET_BUF.length || !crypto.timingSafeEqual(got, SECRET_BUF)) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
@@ -34,12 +76,12 @@ function requireSecret(req: Request, res: Response, next: express.NextFunction) 
 
 // ── In-memory state ──────────────────────────────────────────────────────────
 interface SessionState {
-  client: Client;
+  sock: WASocket;
   status: 'initializing' | 'qr' | 'ready' | 'disconnected';
   qrDataUrl: string | null;
   phoneNumber: string | null;
   displayName: string | null;
-  // SSE writers waiting for events
+  intentionalDisconnect: boolean;
   sseListeners: Set<(event: string, data: any) => void>;
 }
 
@@ -54,240 +96,219 @@ function broadcastToSession(connectionId: string, event: string, data: any) {
   }
 }
 
-// ── Purge Chromium cache dirs to free disk space ─────────────────────────────
-function purgeChromeCache() {
-  const sessionsDir = './.whatsapp-sessions';
-  if (!fs.existsSync(sessionsDir)) return;
-
-  // Cache subdirs that Chromium creates but are safe to delete
-  const CACHE_DIRS = ['Cache', 'Code Cache', 'GPUCache', 'DawnCache', 'ShaderCache', 'blob_storage'];
-  let freedBytes = 0;
-
-  const entries = fs.readdirSync(sessionsDir);
-  for (const entry of entries) {
-    const sessionPath = path.join(sessionsDir, entry, 'Default');
-    if (!fs.existsSync(sessionPath)) continue;
-    for (const cacheDir of CACHE_DIRS) {
-      const cachePath = path.join(sessionPath, cacheDir);
-      if (!fs.existsSync(cachePath)) continue;
-      try {
-        const size = getDirSize(cachePath);
-        fs.rmSync(cachePath, { recursive: true, force: true });
-        freedBytes += size;
-      } catch {}
-    }
-  }
-  if (freedBytes > 0) {
-    console.log(`[cleanup] Freed ${(freedBytes / 1024 / 1024).toFixed(1)} MB of Chrome cache`);
-  }
-}
-
-function getDirSize(dir: string): number {
-  let total = 0;
-  try {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) total += getDirSize(full);
-      else try { total += fs.statSync(full).size; } catch {}
-    }
-  } catch {}
-  return total;
-}
-
-// ── Create/replace WA client ─────────────────────────────────────────────────
+// ── Create/replace Baileys client ────────────────────────────────────────────
 async function createClient(userId: string, connectionId: string): Promise<void> {
-  // Destroy existing if any
-  const existing = sessions.get(connectionId);
-  if (existing) {
-    try { await existing.client.destroy(); } catch {}
-    sessions.delete(connectionId);
+  if (!isSafeId(connectionId) || !isSafeId(userId)) {
+    throw new Error('Invalid connectionId or userId');
   }
 
-  const client = new Client({
-    authStrategy: new LocalAuth({
-      clientId: connectionId,
-      dataPath: './.whatsapp-sessions',
-    }),
-    puppeteer: {
-      headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-background-networking',
-        '--disable-default-apps',
-        '--disable-sync',
-        '--disable-translate',
-        '--hide-scrollbars',
-        '--metrics-recording-only',
-        '--mute-audio',
-        '--safebrowsing-disable-auto-update',
-        '--ignore-certificate-errors',
-        '--disable-plugins',
-        // Disable disk cache to prevent volume from filling up
-        '--disk-cache-size=0',
-        '--media-cache-size=0',
-        '--disable-application-cache',
-        '--disable-offline-load-stale-cache',
-        '--disable-cache',
-      ],
-    },
+  const existing = sessions.get(connectionId);
+  // Preserve SSE listeners across the replacement
+  const carriedListeners = existing?.sseListeners ?? new Set<(event: string, data: any) => void>();
+
+  if (existing) {
+    // Mark stale so its close handler knows it's been superseded and stays quiet
+    existing.intentionalDisconnect = true;
+    (existing as any).__superseded = true;
+    sessions.delete(connectionId);
+    try { existing.sock?.end(undefined); } catch {}
+  }
+
+  // Resolve and verify path stays inside SESSIONS_DIR
+  const sessionsRoot = path.resolve(SESSIONS_DIR);
+  const authDir = path.resolve(sessionsRoot, connectionId);
+  if (!authDir.startsWith(sessionsRoot + path.sep) && authDir !== sessionsRoot) {
+    throw new Error('Invalid auth path');
+  }
+  fs.mkdirSync(authDir, { recursive: true });
+
+  const { state, saveCreds } = await useMultiFileAuthState(authDir);
+
+  const sock = makeWASocket({
+    auth: state,
+    logger: silentLogger,
+    printQRInTerminal: false,
+    browser: ['YelhaDms', 'Chrome', '1.0.0'],
+    connectTimeoutMs: 60_000,
+    defaultQueryTimeoutMs: 60_000,
+    keepAliveIntervalMs: 30_000,
+    retryRequestDelayMs: 2_000,
+    qrTimeout: 60_000,
+    markOnlineOnConnect: false,
+    getMessage: async () => ({ conversation: '' }),
   });
 
-  const state: SessionState = {
-    client,
+  const sessionState: SessionState = {
+    sock,
     status: 'initializing',
     qrDataUrl: null,
     phoneNumber: null,
     displayName: null,
-    sseListeners: new Set(),
+    intentionalDisconnect: false,
+    sseListeners: carriedListeners,
   };
-  sessions.set(connectionId, state);
+  sessions.set(connectionId, sessionState);
 
-  client.on('qr', async (qr: string) => {
-    try {
-      const dataUrl = await QRCode.toDataURL(qr);
-      state.qrDataUrl = dataUrl;
-      state.status = 'qr';
-      broadcastToSession(connectionId, 'qr', { qr: dataUrl });
+  sock.ev.on('creds.update', saveCreds);
 
-      // Push QR to Next.js so the browser can poll for it
-      await fetch(`${NEXT_APP_URL}/api/whatsapp/qr-update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
-        body: JSON.stringify({ connectionId, userId, qrDataUrl: dataUrl }),
-      }).catch((e) => console.error('[WA] QR update error', e));
-    } catch (err) {
-      console.error(`[${connectionId}] QR generation error`, err);
-    }
-  });
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update;
 
-  client.on('ready', async () => {
-    const info = client.info;
-    state.phoneNumber = info?.wid?.user ?? null;
-    state.displayName = info?.pushname ?? null;
-    state.status = 'ready';
-    state.qrDataUrl = null;
+    // Ignore events from a socket that has been superseded by a newer createClient
+    if ((sessionState as any).__superseded) return;
 
-    // Persist session to DB via Next.js internal API
-    await fetch(`${NEXT_APP_URL}/api/whatsapp/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
-      body: JSON.stringify({
-        userId,
-        connectionId,
-        phoneNumber: state.phoneNumber,
-        displayName: state.displayName,
-        isActive: true,
-      }),
-    }).catch((e) => console.error('[WA] DB update error', e));
-
-    broadcastToSession(connectionId, 'ready', {
-      phoneNumber: state.phoneNumber,
-      displayName: state.displayName,
-    });
-
-    console.log(`[${connectionId}] Ready — +${state.phoneNumber}`);
-  });
-
-  client.on('message', async (message: Message) => {
-    try {
-      if (message.fromMe) return;
-      if (message.isStatus) return;
-      if (message.from.includes('@g.us')) return;
-      if (message.from === 'status@broadcast') return;
-
-      let contentType: 'text' | 'voice' | 'image' = 'text';
-      let content = message.body || '';
-      let audioBase64: string | undefined;
-      let audioMime: string | undefined;
-
-      if (message.hasMedia) {
-        if (message.type === 'ptt' || message.type === 'audio') {
-          contentType = 'voice';
-          const media = await message.downloadMedia();
-          audioBase64 = media.data;
-          audioMime = media.mimetype || 'audio/ogg';
-          content = '';
-        } else if (message.type === 'image') {
-          contentType = 'image';
-          content = '[Image reçue]';
-        } else {
-          return; // unsupported media
-        }
-      } else if (!content.trim()) {
-        return;
-      }
-
-      // Human-like delay
-      const delay = Math.floor(Math.random() * 3000) + 2000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-
-      // Fetch profile photo (best-effort, expires but refreshed periodically)
-      let profilePhotoUrl: string | undefined;
+    if (qr) {
       try {
-        const contact = await client.getContactById(message.from);
-        profilePhotoUrl = await contact.getProfilePicUrl() || undefined;
-      } catch {}
+        const dataUrl = await QRCode.toDataURL(qr);
+        sessionState.qrDataUrl = dataUrl;
+        sessionState.status = 'qr';
+        broadcastToSession(connectionId, 'qr', { qr: dataUrl });
 
-      // Call Next.js for bot processing
-      const processRes = await fetch(`${NEXT_APP_URL}/api/whatsapp/process`, {
+        await fetch(`${NEXT_APP_URL}/api/whatsapp/qr-update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+          body: JSON.stringify({ connectionId, userId, qrDataUrl: dataUrl }),
+        }).catch((e) => console.error('[WA] QR update error', e));
+      } catch (err) {
+        console.error(`[${connectionId}] QR generation error`, err);
+      }
+    }
+
+    if (connection === 'open') {
+      // sock.user.id is e.g. "213555555555:0@s.whatsapp.net"
+      sessionState.phoneNumber = sock.user?.id?.split(':')[0] ?? null;
+      sessionState.displayName = sock.user?.name ?? null;
+      sessionState.status = 'ready';
+      sessionState.qrDataUrl = null;
+
+      await fetch(`${NEXT_APP_URL}/api/whatsapp/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
         body: JSON.stringify({
+          userId,
           connectionId,
-          contactId: message.from,
-          contactName: (message as any).notifyName || null,
-          content,
-          contentType,
-          ...(audioBase64 ? { audioBase64, audioMime } : {}),
-          ...(profilePhotoUrl ? { profilePhotoUrl } : {}),
+          phoneNumber: sessionState.phoneNumber,
+          displayName: sessionState.displayName,
+          isActive: true,
         }),
+      }).catch((e) => console.error('[WA] DB update error', e));
+
+      broadcastToSession(connectionId, 'ready', {
+        phoneNumber: sessionState.phoneNumber,
+        displayName: sessionState.displayName,
       });
 
-      const { reply } = await processRes.json() as { reply: string | null };
-      if (!reply) return;
+      console.log(`[${connectionId}] Ready — +${sessionState.phoneNumber}`);
+    }
 
-      // Typing indicator
-      const chat = await message.getChat();
-      await chat.sendStateTyping();
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    if (connection === 'close') {
+      // Only act if this handler still owns the map slot
+      if (sessions.get(connectionId) !== sessionState) return;
 
-      await message.reply(reply);
+      const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+      const loggedOut = statusCode === DisconnectReason.loggedOut;
 
-    } catch (err) {
-      console.error(`[${connectionId}] Message handling error`, err);
+      console.log(`[${connectionId}] Disconnected — code ${statusCode}`);
+
+      const wasIntentional = sessionState.intentionalDisconnect;
+      sessionState.status = 'disconnected';
+      broadcastToSession(connectionId, 'disconnected', {});
+
+      await fetch(`${NEXT_APP_URL}/api/whatsapp/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+        body: JSON.stringify({ connectionId, isActive: false }),
+      }).catch(() => {});
+
+      sessions.delete(connectionId);
+
+      if (loggedOut || wasIntentional) {
+        // Permanently remove auth — session invalidated or manually disconnected
+        try { fs.rmSync(authDir, { recursive: true, force: true }); } catch {}
+      } else {
+        // Transient error — reconnect automatically
+        console.log(`[${connectionId}] Reconnecting in 3s...`);
+        setTimeout(() => {
+          // Another createClient may have raced us; skip if a session is already there
+          if (sessions.has(connectionId)) return;
+          createClient(userId, connectionId).catch((e) =>
+            console.error(`[${connectionId}] Reconnect error:`, e)
+          );
+        }, 3_000);
+      }
     }
   });
 
-  client.on('disconnected', async () => {
-    state.status = 'disconnected';
-    broadcastToSession(connectionId, 'disconnected', {});
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (type !== 'notify') return;
 
-    await fetch(`${NEXT_APP_URL}/api/whatsapp/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
-      body: JSON.stringify({ connectionId, isActive: false }),
-    }).catch(() => {});
+    for (const msg of messages) {
+      try {
+        if (msg.key.fromMe) continue;
+        const jid = msg.key.remoteJid ?? '';
+        if (!jid || isJidGroup(jid) || isJidBroadcast(jid)) continue;
+        if (jid === 'status@broadcast') continue;
 
-    sessions.delete(connectionId);
-    console.log(`[${connectionId}] Disconnected`);
+        const m = msg.message;
+        if (!m) continue;
+
+        let contentType: 'text' | 'voice' | 'image' = 'text';
+        let content = '';
+        let audioBase64: string | undefined;
+        let audioMime: string | undefined;
+
+        if (m.audioMessage) {
+          if (!m.audioMessage.ptt) continue; // skip non-voice audio
+          contentType = 'voice';
+          const buffer = (await downloadMediaMessage(msg, 'buffer', {})) as Buffer;
+          audioBase64 = buffer.toString('base64');
+          audioMime = m.audioMessage.mimetype || 'audio/ogg; codecs=opus';
+        } else if (m.imageMessage) {
+          contentType = 'image';
+          content = '[Image reçue]';
+        } else {
+          content = m.conversation || m.extendedTextMessage?.text || '';
+          if (!content.trim()) continue;
+        }
+
+        // Human-like delay
+        const delay = Math.floor(Math.random() * 3000) + 2000;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        // Profile photo (best-effort)
+        let profilePhotoUrl: string | undefined;
+        try {
+          profilePhotoUrl = (await sock.profilePictureUrl(jid, 'image')) ?? undefined;
+        } catch {}
+
+        const processRes = await fetch(`${NEXT_APP_URL}/api/whatsapp/process`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+          body: JSON.stringify({
+            connectionId,
+            contactId: jid,
+            contactName: msg.pushName || null,
+            content,
+            contentType,
+            ...(audioBase64 ? { audioBase64, audioMime } : {}),
+            ...(profilePhotoUrl ? { profilePhotoUrl } : {}),
+          }),
+        });
+
+        const { reply } = (await processRes.json()) as { reply: string | null };
+        if (!reply) continue;
+
+        // Typing indicator
+        await sock.sendPresenceUpdate('composing', jid);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await sock.sendPresenceUpdate('paused', jid);
+
+        await sock.sendMessage(jid, { text: reply });
+      } catch (err) {
+        console.error(`[${connectionId}] Message handling error`, err);
+      }
+    }
   });
-
-  client.on('auth_failure', async () => {
-    state.status = 'disconnected';
-    broadcastToSession(connectionId, 'error', { message: 'Authentication failed' });
-    sessions.delete(connectionId);
-  });
-
-  await client.initialize();
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -295,21 +316,19 @@ async function createClient(userId: string, connectionId: string): Promise<void>
 // Init endpoint — starts a WA client, responds immediately (QR delivered via callback)
 app.post('/init', requireSecret, async (req: Request, res: Response) => {
   const { connectionId, userId } = req.body as { connectionId: string; userId: string };
-  if (!connectionId || !userId) {
-    res.status(400).json({ error: 'Missing params' });
+  if (!isSafeId(connectionId) || !isSafeId(userId)) {
+    res.status(400).json({ error: 'Invalid params' });
     return;
   }
 
-  // Respond immediately, client init happens in background
   res.json({ ok: true });
 
   createClient(userId, connectionId).catch(async (err) => {
     console.error(`[${connectionId}] Init error`, err);
-    // Notify Next.js so the modal can show an error
     await fetch(`${NEXT_APP_URL}/api/whatsapp/qr-update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
-      body: JSON.stringify({ connectionId, userId, error: err?.message || 'Puppeteer failed to start' }),
+      body: JSON.stringify({ connectionId, userId, error: err?.message || 'Failed to start' }),
     }).catch(() => {});
   });
 });
@@ -319,8 +338,8 @@ app.get('/connect', requireSecret, async (req: Request, res: Response) => {
   const connectionId = req.query.connectionId as string;
   const userId = req.query.userId as string;
 
-  if (!connectionId || !userId) {
-    res.status(400).json({ error: 'Missing params' });
+  if (!isSafeId(connectionId) || !isSafeId(userId)) {
+    res.status(400).json({ error: 'Invalid params' });
     return;
   }
 
@@ -334,7 +353,6 @@ app.get('/connect', requireSecret, async (req: Request, res: Response) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
-  // Check if already ready
   const existing = sessions.get(connectionId);
   if (existing?.status === 'ready') {
     send('ready', { phoneNumber: existing.phoneNumber, displayName: existing.displayName });
@@ -342,12 +360,10 @@ app.get('/connect', requireSecret, async (req: Request, res: Response) => {
     return;
   }
 
-  // If QR already generated, send it immediately
   if (existing?.status === 'qr' && existing.qrDataUrl) {
     send('qr', { qr: existing.qrDataUrl });
   }
 
-  // Register SSE listener
   const session = existing || sessions.get(connectionId);
   const listener = (event: string, data: any) => {
     send(event, data);
@@ -367,13 +383,13 @@ app.get('/connect', requireSecret, async (req: Request, res: Response) => {
   if (session) {
     session.sseListeners.add(listener);
   } else {
-    // Start new client — register listener first so we catch the QR
     const tempState: SessionState = {
-      client: null as any,
+      sock: null as any,
       status: 'initializing',
       qrDataUrl: null,
       phoneNumber: null,
       displayName: null,
+      intentionalDisconnect: false,
       sseListeners: new Set([listener]),
     };
     sessions.set(connectionId, tempState);
@@ -388,9 +404,18 @@ app.get('/connect', requireSecret, async (req: Request, res: Response) => {
 
 // Send message endpoint — called by Next.js for manual replies & auto-confirm
 app.post('/send', requireSecret, async (req: Request, res: Response) => {
-  const { connectionId, contactId, message } = req.body as { connectionId: string; contactId: string; message: string };
-  if (!connectionId || !contactId || !message) {
-    res.status(400).json({ error: 'Missing params' });
+  const { connectionId, contactId, message } = req.body as {
+    connectionId: string;
+    contactId: string;
+    message: string;
+  };
+  if (!isSafeId(connectionId) || typeof contactId !== 'string' || !contactId || typeof message !== 'string' || !message) {
+    res.status(400).json({ error: 'Invalid params' });
+    return;
+  }
+  // Guard against unexpected JID shapes / injection into Baileys
+  if (!/^[0-9]+(?::[0-9]+)?@(s\.whatsapp\.net|c\.us)$/.test(contactId)) {
+    res.status(400).json({ error: 'Invalid contactId' });
     return;
   }
   const session = sessions.get(connectionId);
@@ -399,8 +424,7 @@ app.post('/send', requireSecret, async (req: Request, res: Response) => {
     return;
   }
   try {
-    const chat = await session.client.getChatById(contactId);
-    await chat.sendMessage(message);
+    await session.sock.sendMessage(contactId, { text: message });
     res.json({ ok: true });
   } catch (err: any) {
     console.error(`[${connectionId}] Send error`, err);
@@ -411,13 +435,17 @@ app.post('/send', requireSecret, async (req: Request, res: Response) => {
 // Disconnect endpoint
 app.post('/disconnect', requireSecret, async (req: Request, res: Response) => {
   const { connectionId } = req.body as { connectionId: string };
+  if (!isSafeId(connectionId)) {
+    res.status(400).json({ error: 'Invalid params' });
+    return;
+  }
   const session = sessions.get(connectionId);
   if (session) {
-    try {
-      await session.client.logout();
-      await session.client.destroy();
-    } catch {}
+    session.intentionalDisconnect = true;
     sessions.delete(connectionId);
+    try { await session.sock.logout(); } catch {}
+    // Wipe auth dir (safe because connectionId passed isSafeId)
+    try { fs.rmSync(path.join(SESSIONS_DIR, connectionId), { recursive: true, force: true }); } catch {}
   }
   res.json({ success: true });
 });
@@ -425,6 +453,10 @@ app.post('/disconnect', requireSecret, async (req: Request, res: Response) => {
 // Status endpoint
 app.get('/status/:connectionId', requireSecret, (req: Request, res: Response) => {
   const { connectionId } = req.params;
+  if (!isSafeId(connectionId)) {
+    res.status(400).json({ error: 'Invalid params' });
+    return;
+  }
   const session = sessions.get(connectionId);
   res.json({ status: session?.status ?? 'disconnected' });
 });
@@ -441,8 +473,14 @@ async function reconnectActiveSessions() {
       headers: { 'x-whatsapp-secret': SERVICE_SECRET },
     });
     if (!res.ok) return;
-    const { sessions: activeSessions } = await res.json() as { sessions: { userId: string; connectionId: string }[] };
+    const { sessions: activeSessions } = (await res.json()) as {
+      sessions: { userId: string; connectionId: string }[];
+    };
     for (const { userId, connectionId } of activeSessions) {
+      if (!isSafeId(connectionId) || !isSafeId(userId)) {
+        console.warn(`[startup] Skipping invalid session id ${connectionId}`);
+        continue;
+      }
       console.log(`[startup] Reconnecting ${connectionId}...`);
       createClient(userId, connectionId).catch((e) =>
         console.error(`[startup] Failed to reconnect ${connectionId}:`, e)
@@ -455,9 +493,5 @@ async function reconnectActiveSessions() {
 
 app.listen(PORT, () => {
   console.log(`WhatsApp service running on port ${PORT}`);
-  // Clean Chrome cache on startup (volume was at 98%)
-  purgeChromeCache();
   reconnectActiveSessions();
-  // Purge cache every 6 hours
-  setInterval(purgeChromeCache, 6 * 60 * 60 * 1000);
 });

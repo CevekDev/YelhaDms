@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
     connectionId,
-    contactId,        // WhatsApp JID e.g. "213xxxxxxxx@c.us"
+    contactId,        // WhatsApp JID e.g. "213xxxxxxxx@s.whatsapp.net"
     contactName,      // notifyName
     content,          // text content or "[Vocal]: transcript" or "[Image reçue]"
     contentType,      // "text" | "voice" | "image"
