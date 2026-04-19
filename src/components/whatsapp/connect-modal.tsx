@@ -42,10 +42,10 @@ export function ConnectWhatsAppModal({ connectionId, onConnected, onClose }: Pro
         return;
       }
 
-      if (data.waStatus === 'disconnected') {
+      if (data.waStatus === 'disconnected' || data.waStatus === 'error') {
         stopPolling();
         setStatus('error');
-        setErrorMsg('Session déconnectée.');
+        setErrorMsg(data.waStatus === 'error' ? 'Puppeteer a planté sur Railway — vérifiez les logs.' : 'Session déconnectée.');
       }
     } catch {
       // ignore transient errors, keep polling

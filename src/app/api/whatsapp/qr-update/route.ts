@@ -8,9 +8,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { connectionId, userId, qrDataUrl } = await req.json();
-  if (!connectionId || !qrDataUrl) {
+  const { connectionId, userId, qrDataUrl, error } = await req.json();
+  if (!connectionId) {
     return NextResponse.json({ error: 'Missing params' }, { status: 400 });
+  }
+
+  if (error) {
+    // Puppeteer failed — store error state so modal can show it
+    await prisma.whatsAppSession.updateMany({
+      where: { connectionId },
+      data: { waStatus: 'error', qrDataUrl: null },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (!qrDataUrl) {
+    return NextResponse.json({ error: 'Missing qrDataUrl' }, { status: 400 });
   }
 
   await prisma.whatsAppSession.upsert({

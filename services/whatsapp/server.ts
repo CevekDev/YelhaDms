@@ -246,8 +246,14 @@ app.post('/init', requireSecret, async (req: Request, res: Response) => {
   // Respond immediately, client init happens in background
   res.json({ ok: true });
 
-  createClient(userId, connectionId).catch((err) => {
+  createClient(userId, connectionId).catch(async (err) => {
     console.error(`[${connectionId}] Init error`, err);
+    // Notify Next.js so the modal can show an error
+    await fetch(`${NEXT_APP_URL}/api/whatsapp/qr-update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+      body: JSON.stringify({ connectionId, userId, error: err?.message || 'Puppeteer failed to start' }),
+    }).catch(() => {});
   });
 });
 
