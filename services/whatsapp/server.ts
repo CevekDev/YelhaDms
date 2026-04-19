@@ -163,7 +163,7 @@ async function createClient(userId: string, connectionId: string): Promise<void>
         body: JSON.stringify({
           connectionId,
           contactId: message.from,
-          contactName: message.notifyName || null,
+          contactName: (message as any).notifyName || null,
           content,
           contentType,
           ...(audioBase64 ? { audioBase64, audioMime } : {}),
