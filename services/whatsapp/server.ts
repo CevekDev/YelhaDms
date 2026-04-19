@@ -182,6 +182,13 @@ async function createClient(userId: string, connectionId: string): Promise<void>
       const delay = Math.floor(Math.random() * 3000) + 2000;
       await new Promise(resolve => setTimeout(resolve, delay));
 
+      // Fetch profile photo (best-effort, expires but refreshed periodically)
+      let profilePhotoUrl: string | undefined;
+      try {
+        const contact = await client.getContactById(message.from);
+        profilePhotoUrl = await contact.getProfilePicUrl() || undefined;
+      } catch {}
+
       // Call Next.js for bot processing
       const processRes = await fetch(`${NEXT_APP_URL}/api/whatsapp/process`, {
         method: 'POST',
@@ -193,6 +200,7 @@ async function createClient(userId: string, connectionId: string): Promise<void>
           content,
           contentType,
           ...(audioBase64 ? { audioBase64, audioMime } : {}),
+          ...(profilePhotoUrl ? { profilePhotoUrl } : {}),
         }),
       });
 

@@ -34,12 +34,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
     connectionId,
-    contactId,       // WhatsApp JID e.g. "213xxxxxxxx@c.us"
-    contactName,     // notifyName
-    content,         // text content or "[Vocal]: transcript" or "[Image reçue]"
-    contentType,     // "text" | "voice" | "image"
-    audioBase64,     // present when contentType === "voice"
-    audioMime,       // e.g. "audio/ogg"
+    contactId,        // WhatsApp JID e.g. "213xxxxxxxx@c.us"
+    contactName,      // notifyName
+    content,          // text content or "[Vocal]: transcript" or "[Image reçue]"
+    contentType,      // "text" | "voice" | "image"
+    audioBase64,      // present when contentType === "voice"
+    audioMime,        // e.g. "audio/ogg"
+    profilePhotoUrl,  // profile pic URL from WA (temporary, refreshed every hour)
   } = body as {
     connectionId: string;
     contactId: string;
@@ -48,10 +49,29 @@ export async function POST(req: NextRequest) {
     contentType: 'text' | 'voice' | 'image';
     audioBase64?: string;
     audioMime?: string;
+    profilePhotoUrl?: string;
   };
 
   if (!connectionId || !contactId) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+  }
+
+  // Build metadata merging existing data with new profile photo (refresh every hour)
+  async function buildWAMetadata(): Promise<Record<string, any>> {
+    const existing = await prisma.contactContext.findUnique({
+      where: { connectionId_contactId: { connectionId, contactId } },
+      select: { metadata: true },
+    });
+    const existingMeta = (existing?.metadata as Record<string, any> | null) ?? {};
+    const lastFetch = existingMeta.lastPhotoFetch ? Number(existingMeta.lastPhotoFetch) : 0;
+    const needsRefresh = Date.now() - lastFetch > 60 * 60 * 1000;
+
+    const newPhoto = profilePhotoUrl && needsRefresh ? profilePhotoUrl : (existingMeta.profilePhotoUrl ?? undefined);
+    return {
+      ...existingMeta,
+      ...(newPhoto ? { profilePhotoUrl: newPhoto } : {}),
+      ...(profilePhotoUrl && needsRefresh ? { lastPhotoFetch: Date.now() } : {}),
+    };
   }
 
   const connection = await prisma.connection.findFirst({
@@ -131,7 +151,7 @@ export async function POST(req: NextRequest) {
 
           await prisma.order.update({ where: { id: pendingOrder.id }, data: { status: newStatus } });
           const conv = await getOrCreateConversation({ connectionId: connection.id, contactId, platform: 'WHATSAPP', contactName });
-          await upsertContactContext(connection.id, contactId, { contactName });
+          await upsertContactContext(connection.id, contactId, { contactName, metadata: await buildWAMetadata() });
           await saveInboundOnly({ conversationId: conv.id, content, type: 'text' });
           return NextResponse.json({ reply: replyMsg });
         }
@@ -195,7 +215,7 @@ export async function POST(req: NextRequest) {
       const ecoDeliveryFee = (connection as any).deliveryFee as number | null ?? 0;
       const result = await handleEcotrackMessage(ecoState, content, ecoToken, ecoUrl!, ecoDeliveryFee);
       if (result.handled) {
-        const newMeta = { ...metaForEco, ecotrackState: result.newState ?? undefined };
+        const newMeta = { ...metaForEco, ecotrackState: result.newState ?? undefined, ...(profilePhotoUrl ? { profilePhotoUrl } : {}) };
         await upsertContactContext(connection.id, contactId, { contactName, metadata: newMeta });
         await saveInboundOnly({ conversationId: conversation.id, content, type: 'text' });
         return NextResponse.json({ reply: result.responseText || null });
@@ -243,7 +263,7 @@ export async function POST(req: NextRequest) {
       const blocked = await handleSpam(conversation.id);
       if (blocked) {
         await saveInboundOnly({ conversationId: conversation.id, content: inboundContent, type: messageType });
-        await upsertContactContext(connection.id, contactId, { contactName });
+        await upsertContactContext(connection.id, contactId, { contactName, metadata: await buildWAMetadata() });
         return NextResponse.json({ reply: responseText || null });
       }
     }
@@ -454,7 +474,7 @@ export async function POST(req: NextRequest) {
       inbound: { content: inboundContent, type: messageType, tokensUsed: tokensRequired },
       outbound: { content: responseText },
     });
-    await upsertContactContext(connection.id, contactId, { contactName });
+    await upsertContactContext(connection.id, contactId, { contactName, metadata: await buildWAMetadata() });
   } catch (err) { console.error('[WA] Save error', err); }
 
   return NextResponse.json({ reply: responseText });
