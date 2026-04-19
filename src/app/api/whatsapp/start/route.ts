@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-// Tells the Railway microservice to initialise a WA client (fire-and-forget)
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,7 +19,7 @@ export async function POST(req: NextRequest) {
   const WA_SERVICE_SECRET = process.env.WHATSAPP_SERVICE_SECRET;
 
   if (!WA_SERVICE_URL || !WA_SERVICE_SECRET) {
-    return NextResponse.json({ error: 'WhatsApp service not configured' }, { status: 503 });
+    return NextResponse.json({ error: 'WHATSAPP_SERVICE_URL ou WHATSAPP_SERVICE_SECRET manquant sur Vercel' }, { status: 503 });
   }
 
   // Mark session as initializing
@@ -30,15 +29,23 @@ export async function POST(req: NextRequest) {
     update: { waStatus: 'initializing', qrDataUrl: null, isActive: false },
   });
 
-  // Await the fetch so Vercel doesn't kill it before Railway receives the request
-  const initRes = await fetch(`${WA_SERVICE_URL}/init`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': WA_SERVICE_SECRET },
-    body: JSON.stringify({ connectionId, userId: session.user.id }),
-  }).catch((e) => { console.error('[WA start] fetch error', e); return null; });
+  let initRes: Response | null = null;
+  try {
+    initRes = await fetch(`${WA_SERVICE_URL}/init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': WA_SERVICE_SECRET },
+      body: JSON.stringify({ connectionId, userId: session.user.id }),
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: `Impossible de joindre Railway: ${e?.message}` }, { status: 503 });
+  }
 
-  if (!initRes?.ok) {
-    console.error('[WA start] Railway returned', initRes?.status);
+  if (initRes.status === 401) {
+    return NextResponse.json({ error: 'Secret Railway invalide (401) — vérifiez WHATSAPP_SERVICE_SECRET sur Vercel et Railway' }, { status: 503 });
+  }
+
+  if (!initRes.ok) {
+    return NextResponse.json({ error: `Railway a retourné ${initRes.status}` }, { status: 503 });
   }
 
   return NextResponse.json({ ok: true });
