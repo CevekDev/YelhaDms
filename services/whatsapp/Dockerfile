@@ -23,9 +23,9 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --omit=dev --ignore-scripts
+RUN npm install --ignore-scripts
 COPY tsconfig.json ./
 COPY server.ts ./
-RUN npx tsc
+RUN npx tsc && npm prune --omit=dev
 
 CMD ["node", "--max-old-space-size=460", "dist/server.js"]
