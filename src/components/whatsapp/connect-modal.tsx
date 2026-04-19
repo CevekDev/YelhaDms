@@ -15,57 +15,78 @@ export function ConnectWhatsAppModal({ connectionId, onConnected, onClose }: Pro
   const [status, setStatus] = useState<'loading' | 'qr' | 'connected' | 'error'>('loading');
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const esRef = useRef<EventSource | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedRef = useRef(false);
 
-  const start = () => {
+  const stopPolling = () => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+  };
+
+  const poll = async () => {
+    try {
+      const r = await fetch(`/api/whatsapp/status?connectionId=${connectionId}`);
+      if (!r.ok) return;
+      const data = await r.json();
+
+      if (data.isActive) {
+        stopPolling();
+        setPhoneNumber(data.phoneNumber);
+        setStatus('connected');
+        onConnected(data.phoneNumber);
+        return;
+      }
+
+      if (data.waStatus === 'qr' && data.qrDataUrl) {
+        setQrCode(data.qrDataUrl);
+        setStatus('qr');
+        return;
+      }
+
+      if (data.waStatus === 'disconnected') {
+        stopPolling();
+        setStatus('error');
+        setErrorMsg('Session déconnectée.');
+      }
+    } catch {
+      // ignore transient errors, keep polling
+    }
+  };
+
+  const start = async () => {
+    stopPolling();
+    startedRef.current = true;
     setStatus('loading');
     setQrCode(null);
     setErrorMsg('');
 
-    if (esRef.current) { esRef.current.close(); }
-
-    const es = new EventSource(`/api/whatsapp/connect?connectionId=${connectionId}`);
-    esRef.current = es;
-
-    es.addEventListener('qr', (e) => {
-      const { qr } = JSON.parse(e.data);
-      setQrCode(qr);
-      setStatus('qr');
+    const res = await fetch('/api/whatsapp/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connectionId }),
     });
 
-    es.addEventListener('ready', (e) => {
-      const { phoneNumber: phone } = JSON.parse(e.data);
-      setPhoneNumber(phone);
-      setStatus('connected');
-      onConnected(phone);
-      es.close();
-    });
-
-    es.addEventListener('disconnected', () => {
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: 'Erreur de démarrage' }));
       setStatus('error');
-      setErrorMsg('Session déconnectée.');
-      es.close();
-    });
+      setErrorMsg(error || 'Service WhatsApp indisponible');
+      return;
+    }
 
-    es.addEventListener('error', (e: any) => {
-      const msg = e.data ? JSON.parse(e.data)?.message : 'Erreur de connexion';
-      setStatus('error');
-      setErrorMsg(msg || 'Erreur de connexion');
-      es.close();
-    });
-
-    es.onerror = () => {
+    // Poll every 2s for up to 3 minutes
+    pollRef.current = setInterval(poll, 2000);
+    setTimeout(() => {
       if (status !== 'connected') {
+        stopPolling();
         setStatus('error');
-        setErrorMsg('Service WhatsApp indisponible.');
-        es.close();
+        setErrorMsg('Délai dépassé — réessayez.');
       }
-    };
+    }, 180_000);
   };
 
   useEffect(() => {
     start();
-    return () => { esRef.current?.close(); };
+    return () => stopPolling();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionId]);
 
   return (
@@ -93,7 +114,7 @@ export function ConnectWhatsAppModal({ connectionId, onConnected, onClose }: Pro
           {status === 'loading' && (
             <>
               <div className="w-12 h-12 rounded-full border-2 border-white/10 animate-spin" style={{ borderTopColor: WA_COLOR }} />
-              <p className="text-sm font-mono text-white/40">Génération du QR code...</p>
+              <p className="text-sm font-mono text-white/40">Démarrage de WhatsApp...</p>
             </>
           )}
 

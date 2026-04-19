@@ -15,13 +15,13 @@ export async function POST(req: NextRequest) {
   if (isActive === false) {
     await prisma.whatsAppSession.updateMany({
       where: { connectionId },
-      data: { isActive: false },
+      data: { isActive: false, waStatus: 'disconnected', qrDataUrl: null },
     });
   } else if (userId) {
     await prisma.whatsAppSession.upsert({
       where: { connectionId },
-      create: { userId, connectionId, phoneNumber, displayName, isActive: true, lastSeen: new Date() },
-      update: { phoneNumber, displayName, isActive: true, lastSeen: new Date() },
+      create: { userId, connectionId, phoneNumber, displayName, isActive: true, waStatus: 'ready', qrDataUrl: null, lastSeen: new Date() },
+      update: { phoneNumber, displayName, isActive: true, waStatus: 'ready', qrDataUrl: null, lastSeen: new Date() },
     });
     // Mark the connection's WHATSAPP platform as active
     await prisma.connection.update({

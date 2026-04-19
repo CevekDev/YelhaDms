@@ -240,6 +240,8 @@ model WhatsAppSession {
   phoneNumber   String?
   displayName   String?
   isActive      Boolean   @default(false)
+  waStatus      String?   // initializing | qr | ready | disconnected
+  qrDataUrl     String?   @db.Text
   lastSeen      DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

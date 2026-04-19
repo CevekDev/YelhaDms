@@ -90,6 +90,13 @@ async function createClient(userId: string, connectionId: string): Promise<void>
       state.qrDataUrl = dataUrl;
       state.status = 'qr';
       broadcastToSession(connectionId, 'qr', { qr: dataUrl });
+
+      // Push QR to Next.js so the browser can poll for it
+      await fetch(`${NEXT_APP_URL}/api/whatsapp/qr-update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+        body: JSON.stringify({ connectionId, userId, qrDataUrl: dataUrl }),
+      }).catch((e) => console.error('[WA] QR update error', e));
     } catch (err) {
       console.error(`[${connectionId}] QR generation error`, err);
     }
@@ -209,6 +216,22 @@ async function createClient(userId: string, connectionId: string): Promise<void>
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
+
+// Init endpoint — starts a WA client, responds immediately (QR delivered via callback)
+app.post('/init', requireSecret, async (req: Request, res: Response) => {
+  const { connectionId, userId } = req.body as { connectionId: string; userId: string };
+  if (!connectionId || !userId) {
+    res.status(400).json({ error: 'Missing params' });
+    return;
+  }
+
+  // Respond immediately, client init happens in background
+  res.json({ ok: true });
+
+  createClient(userId, connectionId).catch((err) => {
+    console.error(`[${connectionId}] Init error`, err);
+  });
+});
 
 // SSE connect endpoint — streams QR code then ready/disconnected event
 app.get('/connect', requireSecret, async (req: Request, res: Response) => {

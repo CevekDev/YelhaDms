@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   const waSession = await prisma.whatsAppSession.findUnique({
     where: { connectionId },
-    select: { phoneNumber: true, displayName: true, isActive: true, lastSeen: true },
+    select: { phoneNumber: true, displayName: true, isActive: true, lastSeen: true, waStatus: true, qrDataUrl: true },
   });
 
   return NextResponse.json({
@@ -21,5 +21,7 @@ export async function GET(request: NextRequest) {
     phoneNumber: waSession?.phoneNumber ?? null,
     displayName: waSession?.displayName ?? null,
     lastSeen: waSession?.lastSeen ?? null,
+    waStatus: waSession?.waStatus ?? null,
+    qrDataUrl: waSession?.qrDataUrl ?? null,
   });
 }
