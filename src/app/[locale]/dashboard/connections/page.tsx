@@ -101,7 +101,8 @@ function ConnectionsPageInner() {
   const [tgForm, setTgForm] = useState({ name: '', botName: 'Assistant', telegramBotToken: '' });
 
   // Instagram form
-  const [igForm, setIgForm] = useState({ name: '', botName: 'Assistant', instagramUsername: '', instagramPassword: '' });
+  const [igForm, setIgForm] = useState({ name: '', botName: 'Assistant', instagramBusinessAccountId: '', instagramAccessToken: '', instagramVerifyToken: '' });
+  const [igResult, setIgResult] = useState<{ id: string; webhookUrl: string; verifyToken: string; username?: string } | null>(null);
 
   // WhatsApp form
   const [waForm, setWaForm] = useState({ name: '', botName: 'Assistant', whatsappPhoneNumberId: '', whatsappAccessToken: '', whatsappVerifyToken: '' });
@@ -199,7 +200,7 @@ function ConnectionsPageInner() {
   };
 
   const handleAddInstagram = async () => {
-    if (!igForm.name || !igForm.instagramUsername || !igForm.instagramPassword) return;
+    if (!igForm.name || !igForm.instagramBusinessAccountId || !igForm.instagramAccessToken || !igForm.instagramVerifyToken) return;
     setAdding(true);
     try {
       const res = await fetch('/api/connections', {
@@ -209,8 +210,14 @@ function ConnectionsPageInner() {
       });
       const json = await res.json();
       if (res.ok) {
-        toast({ title: '✅ Bot Instagram connecté !' });
-        setIgForm({ name: '', botName: 'Assistant', instagramUsername: '', instagramPassword: '' });
+        const baseUrl = window.location.origin;
+        setIgResult({
+          id: json.id,
+          webhookUrl: `${baseUrl}/api/webhooks/instagram/${json.id}`,
+          verifyToken: igForm.instagramVerifyToken,
+          username: json.username,
+        });
+        setIgForm({ name: '', botName: 'Assistant', instagramBusinessAccountId: '', instagramAccessToken: '', instagramVerifyToken: '' });
         setShowAdd(false);
         fetchConnections();
       } else {
@@ -386,7 +393,7 @@ function ConnectionsPageInner() {
             </>
           )}
 
-          {/* ── Instagram form (partners only) ── */}
+          {/* ── Instagram form ── */}
           {platformTab === 'INSTAGRAM' && isPartner && (
             <>
               <div className="flex items-center gap-2.5 mb-5">
@@ -395,10 +402,70 @@ function ConnectionsPageInner() {
                 </div>
                 <h2 className="font-mono font-semibold text-white text-sm">Nouveau bot Instagram DM</h2>
               </div>
-              <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: `${IG_COLOR}08`, border: `1px solid ${IG_COLOR}20` }}>
-                <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: IG_COLOR }} />
-                <p className="text-xs font-mono" style={{ color: IG_COLOR }}>Accès partenaire actif — bot Instagram disponible</p>
+
+              {/* Tutorial */}
+              <div className="rounded-xl overflow-hidden mb-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                <button onClick={() => setShowMetaHelp(v => !v)} className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center gap-2">
+                    <HelpCircle className="w-3.5 h-3.5" style={{ color: ORANGE }} />
+                    <span className="font-mono text-xs text-white/60">Comment obtenir le Instagram Business Account ID et le token ?</span>
+                  </div>
+                  {showMetaHelp ? <ChevronUp className="w-3.5 h-3.5 text-white/30" /> : <ChevronDown className="w-3.5 h-3.5 text-white/30" />}
+                </button>
+                {showMetaHelp && (
+                  <div className="px-4 pb-4 border-t border-white/[0.05]">
+                    <div className="pt-4 space-y-2.5">
+                      <p className="text-[10px] font-mono text-white/30 uppercase tracking-wider mb-1">Prérequis</p>
+                      {[
+                        { n: '→', text: 'Votre compte Instagram doit être de type "Professionnel" ou "Entreprise"' },
+                        { n: '→', text: 'Il doit être lié à une Page Facebook' },
+                      ].map(step => (
+                        <div key={step.n} className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold" style={{ background: `${IG_COLOR}18`, color: IG_COLOR }}>{step.n}</div>
+                          <p className="text-xs font-mono text-white/50 pt-0.5 leading-relaxed">{step.text}</p>
+                        </div>
+                      ))}
+                      <p className="text-[10px] font-mono text-white/30 uppercase tracking-wider mt-3 mb-1">Étape 1 — Créer l&apos;app Meta</p>
+                      {[
+                        { n: '1', text: 'Allez sur developers.facebook.com → "Mes applications" → "Créer une application"' },
+                        { n: '2', text: 'Choisissez "Entreprise" → donnez un nom → créez l\'app' },
+                        { n: '3', text: 'Tableau de bord → "Ajouter un produit" → Instagram → "Configurer"' },
+                        { n: '4', text: 'Dans Instagram → Paramètres API, liez votre Page Facebook → récupérez le "Instagram Business Account ID"' },
+                      ].map(step => (
+                        <div key={step.n} className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold" style={{ background: `${IG_COLOR}18`, color: IG_COLOR }}>{step.n}</div>
+                          <p className="text-xs font-mono text-white/50 pt-0.5 leading-relaxed">{step.text}</p>
+                        </div>
+                      ))}
+                      <p className="text-[10px] font-mono text-white/30 uppercase tracking-wider mt-3 mb-1">Étape 2 — Token permanent</p>
+                      {[
+                        { n: '5', text: 'business.facebook.com → Paramètres → Utilisateurs → Utilisateurs système → Ajouter (Admin)' },
+                        { n: '6', text: '"Générer un nouveau token" → sélectionnez votre app → activez instagram_basic + instagram_manage_messages + pages_messaging' },
+                        { n: '7', text: 'Copiez le token — il ne s\'affiche qu\'une seule fois' },
+                      ].map(step => (
+                        <div key={step.n} className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold" style={{ background: `${IG_COLOR}18`, color: IG_COLOR }}>{step.n}</div>
+                          <p className="text-xs font-mono text-white/50 pt-0.5 leading-relaxed">{step.text}</p>
+                        </div>
+                      ))}
+                      <p className="text-[10px] font-mono text-white/30 uppercase tracking-wider mt-3 mb-1">Étape 3 — Webhook (après connexion)</p>
+                      {[
+                        { n: '8', text: 'Instagram → Webhooks → collez Webhook URL + Verify Token affichés après connexion ici' },
+                        { n: '9', text: 'Abonnez-vous à l\'événement "messages"' },
+                      ].map(step => (
+                        <div key={step.n} className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold" style={{ background: `${IG_COLOR}18`, color: IG_COLOR }}>{step.n}</div>
+                          <p className="text-xs font-mono text-white/50 pt-0.5 leading-relaxed">{step.text}</p>
+                        </div>
+                      ))}
+                      <a href="https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-mono mt-2 transition-colors hover:opacity-80" style={{ color: IG_COLOR }}>
+                        <ExternalLink className="w-3 h-3" /> Documentation officielle Meta Instagram
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
+
               <div className="space-y-3">
                 <div>
                   <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom de la connexion</label>
@@ -409,17 +476,20 @@ function ConnectionsPageInner() {
                   <input className={INPUT_CLASS} value={igForm.botName} onChange={e => setIgForm(f => ({ ...f, botName: e.target.value }))} placeholder="Assistant" />
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom d&apos;utilisateur Instagram</label>
-                  <input className={INPUT_CLASS} value={igForm.instagramUsername} onChange={e => setIgForm(f => ({ ...f, instagramUsername: e.target.value }))} placeholder="mon_compte" />
+                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Instagram Business Account ID <span className="text-white/20">(Instagram → Paramètres API)</span></label>
+                  <input className={INPUT_CLASS} value={igForm.instagramBusinessAccountId} onChange={e => setIgForm(f => ({ ...f, instagramBusinessAccountId: e.target.value }))} placeholder="123456789012345" />
                 </div>
                 <div>
-                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Mot de passe Instagram</label>
-                  <input className={INPUT_CLASS} type="password" value={igForm.instagramPassword} onChange={e => setIgForm(f => ({ ...f, instagramPassword: e.target.value }))} placeholder="••••••••" />
-                  <p className="text-xs text-white/20 mt-1.5 font-mono">Stocké chiffré AES-256 — jamais accessible en clair.</p>
+                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Access Token permanent <span className="text-white/20">(Business Manager → Utilisateurs système)</span></label>
+                  <input className={INPUT_CLASS} type="password" value={igForm.instagramAccessToken} onChange={e => setIgForm(f => ({ ...f, instagramAccessToken: e.target.value }))} placeholder="EAAxxxxx..." />
+                </div>
+                <div>
+                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Verify Token <span className="text-white/20">(inventez un mot de passe)</span></label>
+                  <input className={INPUT_CLASS} value={igForm.instagramVerifyToken} onChange={e => setIgForm(f => ({ ...f, instagramVerifyToken: e.target.value }))} placeholder="mon_token_secret_123" />
                 </div>
               </div>
               <div className="flex gap-2 mt-5">
-                <button onClick={handleAddInstagram} disabled={adding || !igForm.name || !igForm.instagramUsername || !igForm.instagramPassword} className="flex items-center gap-2 font-mono text-sm text-white px-5 py-2.5 rounded-xl transition-all hover:opacity-90 disabled:opacity-40" style={{ background: ORANGE }}>
+                <button onClick={handleAddInstagram} disabled={adding || !igForm.name || !igForm.instagramBusinessAccountId || !igForm.instagramAccessToken || !igForm.instagramVerifyToken} className="flex items-center gap-2 font-mono text-sm text-white px-5 py-2.5 rounded-xl transition-all hover:opacity-90 disabled:opacity-40" style={{ background: ORANGE }}>
                   {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Instagram className="w-4 h-4" />}
                   Connecter Instagram
                 </button>
@@ -633,6 +703,19 @@ function ConnectionsPageInner() {
           copiedField={copiedField}
           onCopy={copyToClipboard}
           onClose={() => setFbResult(null)}
+        />
+      )}
+
+      {/* ── Instagram webhook banner ── */}
+      {igResult && (
+        <WebhookBanner
+          color={IG_COLOR}
+          title={`Instagram${igResult.username ? ` @${igResult.username}` : ''} connecté ! Configurez le webhook Meta :`}
+          webhookUrl={igResult.webhookUrl}
+          verifyToken={igResult.verifyToken}
+          copiedField={copiedField}
+          onCopy={copyToClipboard}
+          onClose={() => setIgResult(null)}
         />
       )}
 

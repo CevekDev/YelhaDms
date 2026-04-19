@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma';
 import { encrypt } from '@/lib/encryption';
 import { apiRatelimit, getRateLimitKey } from '@/lib/ratelimit';
 import { z } from 'zod';
-import { loginInstagram } from '@/lib/instagram-private';
 
 const connectionSchema = z.discriminatedUnion('platform', [
   z.object({
@@ -29,8 +28,9 @@ const connectionSchema = z.discriminatedUnion('platform', [
     name: z.string().min(1).max(100),
     botName: z.string().min(1).max(50).default('Assistant'),
     businessName: z.string().max(100).optional(),
-    instagramUsername: z.string().min(1).max(60),
-    instagramPassword: z.string().min(6),
+    instagramBusinessAccountId: z.string().min(1),
+    instagramAccessToken: z.string().min(10),
+    instagramVerifyToken: z.string().min(6),
   }),
   z.object({
     platform: z.literal('FACEBOOK'),
@@ -154,23 +154,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: connection.id, platform: 'FACEBOOK', name: connection.name, pageName: validData.name });
   }
 
-  // ── Instagram (Private API) ───────────────────────────────────────────────
+  // ── Instagram (Meta Graph API) ────────────────────────────────────────────
   if (data.platform === 'INSTAGRAM') {
-    let encryptedSession: string;
-    try {
-      encryptedSession = await loginInstagram(data.instagramUsername, data.instagramPassword);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('challenge') || msg.includes('checkpoint')) {
-        return NextResponse.json(
-          { error: 'Instagram demande une vérification (2FA/email). Validez la connexion depuis l\'app Instagram puis réessayez.' },
-          { status: 400 }
-        );
-      }
-      return NextResponse.json(
-        { error: 'Identifiants Instagram invalides. Vérifiez votre nom d\'utilisateur et mot de passe.' },
-        { status: 400 }
-      );
+    const validRes = await fetch(
+      `https://graph.facebook.com/v20.0/${data.instagramBusinessAccountId}?fields=id,name,username&access_token=${data.instagramAccessToken}`
+    );
+    const validData = await validRes.json();
+    if (!validRes.ok || validData.error) {
+      return NextResponse.json({ error: 'Instagram Business Account ID ou Access Token invalide. Vérifiez vos identifiants Meta.' }, { status: 400 });
     }
 
     const connection = await prisma.connection.create({
@@ -180,13 +171,19 @@ export async function POST(req: NextRequest) {
         name: data.name,
         botName: data.botName,
         businessName: data.businessName,
-        instagramUsername: data.instagramUsername,
-        instagramPassword: encrypt(data.instagramPassword),
-        instagramSessionData: encryptedSession,
+        instagramUsername: validData.username ?? null,
+        instagramBusinessAccountId: data.instagramBusinessAccountId,
+        instagramAccessToken: encrypt(data.instagramAccessToken),
+        instagramWebhookVerifyToken: encrypt(data.instagramVerifyToken),
       },
     });
 
-    return NextResponse.json({ id: connection.id, platform: 'INSTAGRAM', name: connection.name });
+    return NextResponse.json({
+      id: connection.id,
+      platform: 'INSTAGRAM',
+      name: connection.name,
+      username: validData.username,
+    });
   }
 
   // ── Telegram ──────────────────────────────────────────────────────────────
