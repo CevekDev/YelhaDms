@@ -2,6 +2,13 @@ import express, { Request, Response } from 'express';
 import { Client, LocalAuth, Message } from 'whatsapp-web.js';
 import QRCode from 'qrcode';
 
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+
 const app = express();
 app.use(express.json({ limit: '20mb' }));
 
@@ -70,6 +77,17 @@ async function createClient(userId: string, connectionId: string): Promise<void>
         '--no-zygote',
         '--single-process',
         '--disable-gpu',
+        '--disable-extensions',
+        '--disable-background-networking',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--disable-translate',
+        '--hide-scrollbars',
+        '--metrics-recording-only',
+        '--mute-audio',
+        '--safebrowsing-disable-auto-update',
+        '--ignore-certificate-errors',
+        '--disable-plugins',
       ],
     },
   });

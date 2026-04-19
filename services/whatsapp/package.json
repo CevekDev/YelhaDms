@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "node --max-old-space-size=460 dist/server.js",
     "dev": "ts-node server.ts",
     "build": "tsc"
   },
