@@ -15,7 +15,7 @@ export default async function BotSettingsPage({
   const connections = await prisma.connection.findMany({
     where: { userId: session.user.id, isActive: true },
     include: {
-      predefinedMessages: { orderBy: { priority: 'desc' } },
+      predefinedMessages: { orderBy: { priority: 'asc' } },
       detailResponses: { orderBy: { createdAt: 'asc' } },
     },
     orderBy: { createdAt: 'desc' },
@@ -24,13 +24,13 @@ export default async function BotSettingsPage({
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold font-mono text-white">Réglage du bot</h1>
+        <h1 className="text-2xl font-bold font-mono text-white">Réglages du bot</h1>
         <p className="text-white/30 text-sm mt-1 font-mono">
           Configurez la personnalité, les réponses et le comportement de vos bots
         </p>
       </div>
 
-      <BotSettingsClient connections={connections} />
+      <BotSettingsClient connections={connections as any} />
     </div>
   );
 }
