@@ -12,6 +12,8 @@ import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException]', err);
@@ -34,6 +36,27 @@ if (!SERVICE_SECRET || !NEXT_APP_URL) {
 
 const SESSIONS_DIR = './.whatsapp-sessions';
 const SECRET_BUF = Buffer.from(SERVICE_SECRET);
+
+// ── Proxy agent (optional) ───────────────────────────────────────────────────
+// Set PROXY_URL in Railway env to route WA WebSocket through a residential proxy.
+// Supports: http://user:pass@host:port  https://...  socks5://user:pass@host:port
+function buildProxyAgent(): any | undefined {
+  const proxyUrl = process.env.PROXY_URL;
+  if (!proxyUrl) return undefined;
+  try {
+    const scheme = new URL(proxyUrl).protocol.replace(':', '');
+    if (scheme === 'socks5' || scheme === 'socks4' || scheme === 'socks') {
+      console.log(`[proxy] Using SOCKS proxy: ${proxyUrl.replace(/:\/\/.*@/, '://<redacted>@')}`);
+      return new SocksProxyAgent(proxyUrl);
+    }
+    console.log(`[proxy] Using HTTP(S) proxy: ${proxyUrl.replace(/:\/\/.*@/, '://<redacted>@')}`);
+    return new HttpsProxyAgent(proxyUrl);
+  } catch (e) {
+    console.error('[proxy] Invalid PROXY_URL — connecting without proxy:', e);
+    return undefined;
+  }
+}
+const proxyAgent = buildProxyAgent();
 
 // Accept only safe IDs (prevents path traversal via connectionId/userId)
 const SAFE_ID = /^[a-zA-Z0-9_-]{1,128}$/;
@@ -137,6 +160,7 @@ async function createClient(userId: string, connectionId: string, reconnectAttem
     qrTimeout: 60_000,
     markOnlineOnConnect: false,
     getMessage: async () => ({ conversation: '' }),
+    ...(proxyAgent ? { agent: proxyAgent } : {}),
   });
 
   const sessionState: SessionState = {
