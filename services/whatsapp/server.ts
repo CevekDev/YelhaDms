@@ -82,6 +82,7 @@ interface SessionState {
   phoneNumber: string | null;
   displayName: string | null;
   intentionalDisconnect: boolean;
+  reconnectAttempts: number;
   sseListeners: Set<(event: string, data: any) => void>;
 }
 
@@ -97,7 +98,7 @@ function broadcastToSession(connectionId: string, event: string, data: any) {
 }
 
 // ── Create/replace Baileys client ────────────────────────────────────────────
-async function createClient(userId: string, connectionId: string): Promise<void> {
+async function createClient(userId: string, connectionId: string, reconnectAttempts = 0): Promise<void> {
   if (!isSafeId(connectionId) || !isSafeId(userId)) {
     throw new Error('Invalid connectionId or userId');
   }
@@ -145,6 +146,7 @@ async function createClient(userId: string, connectionId: string): Promise<void>
     phoneNumber: null,
     displayName: null,
     intentionalDisconnect: false,
+    reconnectAttempts,
     sseListeners: carriedListeners,
   };
   sessions.set(connectionId, sessionState);
@@ -207,10 +209,15 @@ async function createClient(userId: string, connectionId: string): Promise<void>
 
       const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
       const loggedOut = statusCode === DisconnectReason.loggedOut;
+      // 405 = WhatsApp blocking/rate-limiting this IP or device (not a transient error)
+      // 403 = Forbidden (similar permanent block)
+      // 401 = Logged out
+      const permanentBlock = statusCode === 405 || statusCode === 403;
 
       console.log(`[${connectionId}] Disconnected — code ${statusCode}`);
 
       const wasIntentional = sessionState.intentionalDisconnect;
+      const attempts = sessionState.reconnectAttempts;
       sessionState.status = 'disconnected';
       broadcastToSession(connectionId, 'disconnected', {});
 
@@ -222,19 +229,36 @@ async function createClient(userId: string, connectionId: string): Promise<void>
 
       sessions.delete(connectionId);
 
-      if (loggedOut || wasIntentional) {
-        // Permanently remove auth — session invalidated or manually disconnected
+      if (loggedOut || wasIntentional || permanentBlock) {
+        // Permanently remove auth — session invalidated, manually disconnected, or IP/device blocked
         try { fs.rmSync(authDir, { recursive: true, force: true }); } catch {}
-      } else {
-        // Transient error — reconnect automatically
-        console.log(`[${connectionId}] Reconnecting in 3s...`);
+        if (permanentBlock) {
+          console.log(`[${connectionId}] Permanent block (${statusCode}) — not reconnecting. User must re-initiate.`);
+          // Report error back to Next.js so the UI shows the error state
+          await fetch(`${NEXT_APP_URL}/api/whatsapp/qr-update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+            body: JSON.stringify({ connectionId, userId, error: `Connection blocked by WhatsApp (code ${statusCode})` }),
+          }).catch(() => {});
+        }
+      } else if (attempts < 8) {
+        // Transient error — reconnect with exponential backoff (3s, 6s, 12s … up to ~6 min)
+        const delayMs = Math.min(3_000 * Math.pow(2, attempts), 360_000);
+        console.log(`[${connectionId}] Reconnecting in ${Math.round(delayMs / 1000)}s (attempt ${attempts + 1}/8)...`);
         setTimeout(() => {
           // Another createClient may have raced us; skip if a session is already there
           if (sessions.has(connectionId)) return;
-          createClient(userId, connectionId).catch((e) =>
+          createClient(userId, connectionId, attempts + 1).catch((e) =>
             console.error(`[${connectionId}] Reconnect error:`, e)
           );
-        }, 3_000);
+        }, delayMs);
+      } else {
+        console.log(`[${connectionId}] Max reconnect attempts reached — giving up.`);
+        await fetch(`${NEXT_APP_URL}/api/whatsapp/qr-update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+          body: JSON.stringify({ connectionId, userId, error: 'Max reconnect attempts reached' }),
+        }).catch(() => {});
       }
     }
   });
@@ -479,6 +503,19 @@ async function reconnectActiveSessions() {
     for (const { userId, connectionId } of activeSessions) {
       if (!isSafeId(connectionId) || !isSafeId(userId)) {
         console.warn(`[startup] Skipping invalid session id ${connectionId}`);
+        continue;
+      }
+      // Only reconnect if Baileys credentials exist on disk — otherwise user must re-scan QR
+      const authDir = path.resolve(SESSIONS_DIR, connectionId);
+      const credsPath = path.join(authDir, 'creds.json');
+      if (!fs.existsSync(credsPath)) {
+        console.log(`[startup] No auth state for ${connectionId} — marking inactive (user must re-scan QR)`);
+        // Mark inactive in DB so the UI shows the right state
+        await fetch(`${NEXT_APP_URL}/api/whatsapp/session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-whatsapp-secret': SERVICE_SECRET },
+          body: JSON.stringify({ connectionId, isActive: false }),
+        }).catch(() => {});
         continue;
       }
       console.log(`[startup] Reconnecting ${connectionId}...`);
