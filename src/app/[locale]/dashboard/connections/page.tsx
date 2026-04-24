@@ -5,12 +5,11 @@ import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import {
   Plus, Send, Trash2, Loader2, Clock,
-  Instagram, HelpCircle,
+  HelpCircle,
   ChevronDown, ChevronUp,
-  Bot, Hash, CheckCircle, Smartphone, Settings,
+  Bot, Hash, CheckCircle, Settings,
 } from 'lucide-react';
 import Link from 'next/link';
-import { ConnectWhatsAppModal } from '@/components/whatsapp/connect-modal';
 
 const ORANGE = '#FF6B2C';
 const SKY = '#0ea5e9';
@@ -29,8 +28,6 @@ const INPUT_CLASS = `w-full bg-white/[0.04] border border-white/[0.07] rounded-x
   focus:outline-none focus:border-[#FF6B2C]/40 transition-colors`;
 
 
-type PlatformTab = 'TELEGRAM' | 'WHATSAPP';
-
 function ConnectionsPageInner() {
   const t = useTranslations('connections');
   const params = useParams();
@@ -39,16 +36,11 @@ function ConnectionsPageInner() {
   const [connections, setConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [platformTab, setPlatformTab] = useState<PlatformTab>('TELEGRAM');
   const [showHelp, setShowHelp] = useState(false);
   const [adding, setAdding] = useState(false);
   const [waitingId, setWaitingId] = useState(false);
 
-  const [waModalConnectionId, setWaModalConnectionId] = useState<string | null>(null);
-  const [waStatuses, setWaStatuses] = useState<Record<string, { isActive: boolean; phoneNumber: string | null }>>({});
-
   const [tgForm, setTgForm] = useState({ name: '', botName: 'Assistant', telegramBotToken: '' });
-  const [waForm, setWaForm] = useState({ name: '', botName: 'Assistant' });
 
   useEffect(() => { fetchConnections(); }, []);
 
@@ -56,54 +48,10 @@ function ConnectionsPageInner() {
     try {
       const res = await fetch('/api/connections');
       const data = await res.json();
-      const conns = Array.isArray(data) ? data : [];
-      setConnections(conns);
-      // Fetch WA statuses
-      const waConns = conns.filter((c: any) => c.platform === 'WHATSAPP');
-      const statuses: Record<string, { isActive: boolean; phoneNumber: string | null }> = {};
-      await Promise.all(waConns.map(async (c: any) => {
-        const r = await fetch(`/api/whatsapp/status?connectionId=${c.id}`).catch(() => null);
-        if (r?.ok) {
-          const s = await r.json();
-          statuses[c.id] = { isActive: s.isActive, phoneNumber: s.phoneNumber };
-        }
-      }));
-      setWaStatuses(statuses);
+      setConnections(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAddWhatsApp = async () => {
-    if (!waForm.name) return;
-    setAdding(true);
-    try {
-      const res = await fetch('/api/connections', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform: 'WHATSAPP', ...waForm }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setWaForm({ name: '', botName: 'Assistant' });
-        setShowAdd(false);
-        fetchConnections();
-        setWaModalConnectionId(json.id);
-      } else {
-        toast({ title: 'Erreur', description: json.error, variant: 'destructive' });
-      }
-    } finally { setAdding(false); }
-  };
-
-  const handleDisconnectWhatsApp = async (connectionId: string) => {
-    if (!confirm('Déconnecter ce compte WhatsApp ?')) return;
-    await fetch('/api/whatsapp/disconnect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ connectionId }),
-    });
-    fetchConnections();
-    toast({ title: 'WhatsApp déconnecté' });
   };
 
   const handleAddTelegram = async () => {
@@ -149,7 +97,6 @@ function ConnectionsPageInner() {
   };
 
   const telegramConns = connections.filter(c => c.platform === 'TELEGRAM');
-  const whatsappConns = connections.filter(c => c.platform === 'WHATSAPP');
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -157,7 +104,7 @@ function ConnectionsPageInner() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold font-mono text-white">{t('title')}</h1>
-          <p className="text-white/40 text-sm mt-1 font-mono">Gérez vos bots IA — Telegram &amp; WhatsApp</p>
+          <p className="text-white/40 text-sm mt-1 font-mono">Gérez vos bots IA — Telegram</p>
         </div>
         <button
           onClick={() => { setShowAdd(v => !v); setShowHelp(false); }}
@@ -172,85 +119,33 @@ function ConnectionsPageInner() {
       {/* ── Add form ── */}
       {showAdd && (
         <div style={{ ...CARD_STYLE, padding: '24px', borderColor: `${ORANGE}30` }}>
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6">
-            {([{ id: 'TELEGRAM', label: 'Telegram', color: SKY }, { id: 'WHATSAPP', label: 'WhatsApp', color: WA_COLOR }] as const).map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setPlatformTab(tab.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs transition-all"
-                style={platformTab === tab.id
-                  ? { background: `${tab.color}20`, color: tab.color, border: `1px solid ${tab.color}40` }
-                  : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }
-                }
-              >{tab.label}</button>
-            ))}
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${SKY}20` }}>
+              <Send className="w-4 h-4" style={{ color: SKY }} />
+            </div>
+            <h2 className="font-mono font-semibold text-white text-sm">Nouveau bot Telegram</h2>
           </div>
-
-          {/* Telegram form */}
-          {platformTab === 'TELEGRAM' && (
-            <>
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${SKY}20` }}>
-                  <Send className="w-4 h-4" style={{ color: SKY }} />
-                </div>
-                <h2 className="font-mono font-semibold text-white text-sm">Nouveau bot Telegram</h2>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom de la connexion</label>
-                  <input className={INPUT_CLASS} value={tgForm.name} onChange={e => setTgForm(f => ({ ...f, name: e.target.value }))} placeholder="Mon Bot Support" />
-                </div>
-                <div>
-                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom affiché aux clients</label>
-                  <input className={INPUT_CLASS} value={tgForm.botName} onChange={e => setTgForm(f => ({ ...f, botName: e.target.value }))} placeholder="Assistant" />
-                </div>
-                <div>
-                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Bot Token <span className="text-white/20">(depuis @BotFather)</span></label>
-                  <input className={INPUT_CLASS} type="password" value={tgForm.telegramBotToken} onChange={e => setTgForm(f => ({ ...f, telegramBotToken: e.target.value }))} placeholder="1234567890:AAAA..." />
-                </div>
-              </div>
-              <div className="flex gap-2 mt-5">
-                <button onClick={handleAddTelegram} disabled={adding || !tgForm.telegramBotToken || !tgForm.name} className="flex items-center gap-2 font-mono text-sm text-white px-5 py-2.5 rounded-xl transition-all hover:opacity-90 disabled:opacity-40" style={{ background: ORANGE }}>
-                  {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Connecter le bot
-                </button>
-                <button onClick={() => setShowAdd(false)} className="font-mono text-sm text-white/40 hover:text-white/70 px-4 py-2.5 rounded-xl border border-white/[0.07] transition-all">Annuler</button>
-              </div>
-            </>
-          )}
-
-          {/* WhatsApp form */}
-          {platformTab === 'WHATSAPP' && (
-            <>
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${WA_COLOR}20` }}>
-                  <Smartphone className="w-4 h-4" style={{ color: WA_COLOR }} />
-                </div>
-                <h2 className="font-mono font-semibold text-white text-sm">Nouveau bot WhatsApp</h2>
-              </div>
-              <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(255,165,0,0.05)', border: '1px solid rgba(255,165,0,0.15)' }}>
-                <p className="text-xs font-mono text-yellow-600/80">⚠️ Utilisez un numéro WhatsApp Business dédié, pas votre numéro personnel. Un QR code apparaîtra pour scanner avec votre téléphone.</p>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom de la connexion</label>
-                  <input className={INPUT_CLASS} value={waForm.name} onChange={e => setWaForm(f => ({ ...f, name: e.target.value }))} placeholder="Ma boutique WhatsApp" />
-                </div>
-                <div>
-                  <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom affiché aux clients</label>
-                  <input className={INPUT_CLASS} value={waForm.botName} onChange={e => setWaForm(f => ({ ...f, botName: e.target.value }))} placeholder="Assistant" />
-                </div>
-              </div>
-              <div className="flex gap-2 mt-5">
-                <button onClick={handleAddWhatsApp} disabled={adding || !waForm.name} className="flex items-center gap-2 font-mono text-sm text-white px-5 py-2.5 rounded-xl transition-all hover:opacity-90 disabled:opacity-40" style={{ background: WA_COLOR }}>
-                  {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
-                  Générer le QR code
-                </button>
-                <button onClick={() => setShowAdd(false)} className="font-mono text-sm text-white/40 hover:text-white/70 px-4 py-2.5 rounded-xl border border-white/[0.07] transition-all">Annuler</button>
-              </div>
-            </>
-          )}
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom de la connexion</label>
+              <input className={INPUT_CLASS} value={tgForm.name} onChange={e => setTgForm(f => ({ ...f, name: e.target.value }))} placeholder="Mon Bot Support" />
+            </div>
+            <div>
+              <label className="text-xs text-white/40 font-mono mb-1.5 block">Nom affiché aux clients</label>
+              <input className={INPUT_CLASS} value={tgForm.botName} onChange={e => setTgForm(f => ({ ...f, botName: e.target.value }))} placeholder="Assistant" />
+            </div>
+            <div>
+              <label className="text-xs text-white/40 font-mono mb-1.5 block">Bot Token <span className="text-white/20">(depuis @BotFather)</span></label>
+              <input className={INPUT_CLASS} type="password" value={tgForm.telegramBotToken} onChange={e => setTgForm(f => ({ ...f, telegramBotToken: e.target.value }))} placeholder="1234567890:AAAA..." />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-5">
+            <button onClick={handleAddTelegram} disabled={adding || !tgForm.telegramBotToken || !tgForm.name} className="flex items-center gap-2 font-mono text-sm text-white px-5 py-2.5 rounded-xl transition-all hover:opacity-90 disabled:opacity-40" style={{ background: ORANGE }}>
+              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Connecter le bot
+            </button>
+            <button onClick={() => setShowAdd(false)} className="font-mono text-sm text-white/40 hover:text-white/70 px-4 py-2.5 rounded-xl border border-white/[0.07] transition-all">Annuler</button>
+          </div>
         </div>
       )}
 
@@ -272,6 +167,7 @@ function ConnectionsPageInner() {
           <span className="font-mono text-xs text-white/40 uppercase tracking-wider">Telegram</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full text-white" style={{ background: SKY }}>Disponible</span>
         </div>
+
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-white/20" /></div>
         ) : telegramConns.length === 0 ? (
@@ -322,79 +218,6 @@ function ConnectionsPageInner() {
         )}
       </div>
 
-      {/* ── WhatsApp connections ── */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Smartphone className="w-4 h-4" style={{ color: WA_COLOR }} />
-          <span className="font-mono text-xs text-white/40 uppercase tracking-wider">WhatsApp</span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full text-white" style={{ background: WA_COLOR }}>Disponible</span>
-        </div>
-        {loading ? (
-          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-white/20" /></div>
-        ) : whatsappConns.length === 0 ? (
-          <div style={CARD_STYLE} className="py-10 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: `${WA_COLOR}18` }}>
-              <Smartphone className="w-6 h-6" style={{ color: WA_COLOR }} />
-            </div>
-            <p className="text-white/40 font-mono text-sm">Aucun bot WhatsApp connecté</p>
-            <p className="text-white/20 font-mono text-xs mt-1">Cliquez sur &quot;Ajouter un bot&quot; → WhatsApp</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {whatsappConns.map((conn: any) => {
-              const waStatus = waStatuses[conn.id];
-              const isConnected = waStatus?.isActive;
-              return (
-                <div key={conn.id} style={CARD_STYLE} className="p-5 hover:bg-white/[0.03] transition-colors">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${WA_COLOR}18` }}>
-                        <Smartphone className="w-5 h-5" style={{ color: WA_COLOR }} />
-                      </div>
-                      <div>
-                        <p className="font-mono font-semibold text-white text-sm">{conn.name}</p>
-                        <p className="text-white/30 text-xs font-mono">{conn.botName || 'Assistant'}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full" style={isConnected ? { background: 'rgba(52,211,153,0.15)', color: '#34d399' } : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}>
-                      {isConnected ? 'Actif' : 'Déconnecté'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    {isConnected ? (
-                      <><CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /><span className="text-xs font-mono text-white/50">+{waStatus?.phoneNumber}</span></>
-                    ) : (
-                      <><Smartphone className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" /><span className="text-xs font-mono text-yellow-400/70">Non connecté — scannez le QR</span></>
-                    )}
-                  </div>
-                  <div className="flex justify-between flex-wrap gap-2">
-                    <div className="flex gap-2">
-                      <Link href={`/${params.locale}/dashboard/connections/${conn.id}`}>
-                        <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/20 hover:bg-white/[0.04] text-white/40 hover:text-white font-mono text-xs transition-all">
-                          <Settings className="w-3.5 h-3.5" /> Réglages
-                        </button>
-                      </Link>
-                      {isConnected ? (
-                        <button onClick={() => handleDisconnectWhatsApp(conn.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.06] hover:border-red-500/30 hover:bg-red-500/10 text-white/25 hover:text-red-400 font-mono text-xs transition-all">
-                          Déconnecter
-                        </button>
-                      ) : (
-                        <button onClick={() => setWaModalConnectionId(conn.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-mono text-xs text-white transition-all hover:opacity-90" style={{ background: `${WA_COLOR}20`, color: WA_COLOR, border: `1px solid ${WA_COLOR}30` }}>
-                          <Smartphone className="w-3.5 h-3.5" /> Scanner QR
-                        </button>
-                      )}
-                    </div>
-                    <button onClick={() => handleDelete(conn.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.06] hover:border-red-500/30 hover:bg-red-500/10 text-white/25 hover:text-red-400 font-mono text-xs transition-all">
-                      <Trash2 className="w-3.5 h-3.5" /> Supprimer
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* ── Coming soon ── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
@@ -403,6 +226,7 @@ function ConnectionsPageInner() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
+            { label: 'WhatsApp', color: WA_COLOR },
             { label: 'Instagram DM', color: IG_COLOR },
             { label: 'Facebook Messenger', color: FB_COLOR },
           ].map(p => (
@@ -416,18 +240,6 @@ function ConnectionsPageInner() {
           ))}
         </div>
       </div>
-
-      {/* ── WhatsApp QR Modal ── */}
-      {waModalConnectionId && (
-        <ConnectWhatsAppModal
-          connectionId={waModalConnectionId}
-          onConnected={(phone) => {
-            setWaStatuses(prev => ({ ...prev, [waModalConnectionId]: { isActive: true, phoneNumber: phone } }));
-            toast({ title: `✅ WhatsApp connecté ! +${phone}` });
-          }}
-          onClose={() => { setWaModalConnectionId(null); fetchConnections(); }}
-        />
-      )}
 
       {/* ── Telegram help ── */}
       <div style={CARD_STYLE} className="overflow-hidden">

@@ -365,7 +365,10 @@ export async function finalizeEcotrackOrder(
   // Use the already-persisted order total (correctly computed from product prices in DB)
   // orderData.total is unreliable — the AI JSON may not include it
   const dbOrder = await prisma.order.findUnique({ where: { id: orderId }, select: { totalAmount: true } });
-  const montant = dbOrder?.totalAmount ?? 0;
+  const productTotal = dbOrder?.totalAmount ?? 0;
+
+  // Total the courier collects from the customer = products + delivery fee (COD amount)
+  const totalWithDelivery = productTotal + (deliveryFee || 0);
 
   const result = await createEcotrackOrder(ecoUrl, ecoToken, {
     nom_client: nom,
@@ -373,13 +376,11 @@ export async function finalizeEcotrackOrder(
     adresse,
     commune: communeName,
     code_wilaya: wilayaId,
-    montant,
+    montant: totalWithDelivery,   // COD: customer pays products + delivery
     stop_desk: deliveryType,
     produit: produit || undefined,
     reference: orderId.slice(-8).toUpperCase(),
   });
-
-  const totalWithDelivery = montant + (deliveryFee || 0);
 
   if (result.success && result.tracking) {
     await prisma.order.update({
