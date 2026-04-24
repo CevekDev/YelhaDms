@@ -20,6 +20,7 @@ import {
   buildLocationSuggestionsMsg,
   finalizeEcotrackOrder,
   getWilayaDeliveryFees,
+  getTrackingStatus,
   type EcotrackState,
 } from '@/lib/ecotrack';
 
@@ -289,7 +290,8 @@ export async function POST(
     if (ecoState) {
       const ecoToken = decrypt(ecoRawToken!);
       const ecoDeliveryFee = (connection as any).deliveryFee as number | null ?? 0;
-      const result = await handleEcotrackMessage(ecoState, text, ecoToken, ecoUrl!, ecoDeliveryFee);
+      const ecoAutoShip = !!(connection as any).ecotrackAutoShip;
+      const result = await handleEcotrackMessage(ecoState, text, ecoToken, ecoUrl!, ecoDeliveryFee, ecoAutoShip);
       if (result.handled) {
         const newMeta = { ...metaForEco, ecotrackState: result.newState ?? undefined };
         await upsertContactContext(connection.id, contactId, { contactName, metadata: newMeta });
@@ -443,7 +445,7 @@ export async function POST(
                 const ecoToken = decrypt(ecoRawToken!);
                 const { found, suggestions } = await validateLocation(ecoUrl!, ecoToken, orderData.wilaya || '', orderData.commune || '');
                 if (found) {
-                  const fees = await getWilayaDeliveryFees(ecoUrl!, ecoToken, found.wilayaId);
+                  const fees = getWilayaDeliveryFees(found.wilayaId);
                   const newState: EcotrackState = {
                     step: 'awaiting_delivery_type',
                     orderId: newOrderId,
@@ -455,6 +457,7 @@ export async function POST(
                     hasStopDesk: found.hasStopDesk,
                     tarifDomicile: fees.domicile,
                     tarifStopDesk: fees.stopDesk,
+                    autoShip: !!(connection as any).ecotrackAutoShip,
                   };
                   const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
                   await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
@@ -509,6 +512,31 @@ export async function POST(
     }
   }
 
+  // ── Direct tracking number query ─────────────────────────────────────────
+  const trackingMatch = text.trim().match(/^([A-Z0-9]{6,15})$/i);
+  if (trackingMatch && ecoEnabled && !responseText) {
+    const trackingNum = trackingMatch[1].toUpperCase();
+    try {
+      const order = await prisma.order.findFirst({
+        where: { connectionId: connection.id, ecotrackTracking: trackingNum },
+        select: { id: true, status: true, totalAmount: true, createdAt: true, ecotrackTracking: true },
+      });
+      if (order) {
+        const ecoToken = decrypt(ecoRawToken!);
+        const live = await getTrackingStatus(ecoUrl!, ecoToken, trackingNum).catch(() => null);
+        const statusLabels: Record<string, string> = {
+          PENDING: '⏳ En attente', CONFIRMED: '✅ Confirmée', PROCESSING: '🔄 En traitement',
+          SHIPPED: '🚚 Expédiée', DELIVERED: '📦 Livrée', CANCELLED: '❌ Annulée', RETURNED: '↩️ Retournée',
+        };
+        responseText = `🔍 *Suivi commande ${trackingNum}*\n` +
+          `Statut : ${statusLabels[order.status] ?? order.status}` +
+          (live ? `\nTransporteur : ${live.statusLabel}` : '') +
+          (order.totalAmount ? `\n💰 Total : *${order.totalAmount.toLocaleString('fr-DZ')} DA*` : '') +
+          `\n📅 ${order.createdAt.toLocaleDateString('fr-DZ')}`;
+      }
+    } catch {}
+  }
+
   // ── Statut de commande [ORDER_STATUS_QUERY] ──────────────────────────────
   if (responseText.includes('[ORDER_STATUS_QUERY]')) {
     responseText = responseText.replace('[ORDER_STATUS_QUERY]', '').trim();
@@ -530,11 +558,22 @@ export async function POST(
         };
         const tracking = latestOrder.ecotrackTracking || latestOrder.trackingCode;
         const statusMsg = statusLabels[latestOrder.status] || latestOrder.status;
+
+        // Try to get live status from Ecotrack
+        let liveStatus = '';
+        if (tracking && ecoEnabled) {
+          try {
+            const ecoToken = decrypt(ecoRawToken!);
+            const live = await getTrackingStatus(ecoUrl!, ecoToken, tracking);
+            if (live) liveStatus = `\nStatut transporteur : ${live.statusLabel}`;
+          } catch {}
+        }
+
         responseText = `📦 *Commande #${latestOrder.id.slice(-6).toUpperCase()}*\n` +
-          `Statut : ${statusMsg}\n` +
-          (tracking ? `Tracking : *${tracking}*\n` : '') +
-          (latestOrder.totalAmount ? `Total : *${latestOrder.totalAmount.toLocaleString('fr-DZ')} DA*\n` : '') +
-          `Date : ${latestOrder.createdAt.toLocaleDateString('fr-DZ')}`;
+          `Statut : ${statusMsg}${liveStatus}\n` +
+          (tracking ? `🔍 Tracking : *${tracking}*\n` : '') +
+          (latestOrder.totalAmount ? `💰 Total : *${latestOrder.totalAmount.toLocaleString('fr-DZ')} DA*\n` : '') +
+          `📅 Date : ${latestOrder.createdAt.toLocaleDateString('fr-DZ')}`;
       } else {
         responseText = `Aucune commande trouvée pour votre compte.`;
       }

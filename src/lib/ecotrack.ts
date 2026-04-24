@@ -1,6 +1,18 @@
 import { prisma } from './prisma';
 
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6h
+// ── Local Ecotrack data (1 542 communes, tarifs inclus) ─────────────────────
+import RAW_DATA from '../data/ecotrack_data.json';
+
+type EcoEntry = {
+  wilaya_id: number;
+  wilaya_nom: string;
+  commune: string;
+  code_postal: string;
+  has_stop_desk: number;
+  tarifs: { livraison: { domicile: string; stop_desk: string } };
+};
+
+const DATA = RAW_DATA as EcoEntry[];
 
 export type EcoWilaya = { wilaya_id: number; wilaya_name: string };
 export type EcoCommune = { nom: string; wilaya_id: number; code_postal: string; has_stop_desk: number };
@@ -27,6 +39,7 @@ export interface EcotrackState {
   /** Tarifs récupérés depuis l'API Ecotrack pour la wilaya du client */
   tarifDomicile?: number | null;
   tarifStopDesk?: number | null;
+  autoShip?: boolean;
 }
 
 export interface LocationMatch {
@@ -36,11 +49,6 @@ export interface LocationMatch {
   codePostal: string;
   hasStopDesk: boolean;
 }
-
-// ── In-process cache (survives warm serverless invocations) ─────────────────
-const _wCache = new Map<string, { data: EcoWilaya[]; ts: number }>();
-const _cCache = new Map<string, { data: EcoCommune[]; ts: number }>();
-const _tCache = new Map<string, { data: any[]; ts: number }>();
 
 // ── Daridja / Arabic → wilaya_id mapping ────────────────────────────────────
 const WILAYA_ALIASES: Record<string, number> = {
@@ -142,6 +150,42 @@ const WILAYA_ALIASES: Record<string, number> = {
   جيجل: 18,
 };
 
+function transliterateArabic(s: string): string {
+  const map: Record<string, string> = {
+    'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'a', 'ب': 'b', 'ت': 't', 'ث': 'th',
+    'ج': 'dj', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z',
+    'س': 's', 'ش': 'ch', 'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'dh', 'ع': 'a',
+    'غ': 'gh', 'ف': 'f', 'ق': 'k', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+    'ه': 'h', 'و': 'ou', 'ي': 'i', 'ى': 'a', 'ة': 'a', 'ء': '', 'ـ': '',
+    'َ': '', 'ِ': '', 'ُ': '', 'ً': '', 'ٍ': '', 'ٌ': '', 'ْ': '', 'ّ': '',
+  };
+  const result = s.split('').map(c => map[c] ?? c).join('').replace(/\s+/g, ' ').trim();
+  return result;
+}
+
+function getLocalWilayas(): EcoWilaya[] {
+  const seen = new Set<number>();
+  const out: EcoWilaya[] = [];
+  for (const e of DATA) {
+    if (!seen.has(e.wilaya_id)) { seen.add(e.wilaya_id); out.push({ wilaya_id: e.wilaya_id, wilaya_name: e.wilaya_nom }); }
+  }
+  return out;
+}
+
+function getLocalCommunes(wilayaId?: number): EcoCommune[] {
+  const entries = wilayaId != null ? DATA.filter(e => e.wilaya_id === wilayaId) : DATA;
+  return entries.map(e => ({ nom: e.commune, wilaya_id: e.wilaya_id, code_postal: e.code_postal, has_stop_desk: e.has_stop_desk }));
+}
+
+export function getWilayaDeliveryFees(wilayaId: number): { domicile: number; stopDesk: number } {
+  const entry = DATA.find(e => e.wilaya_id === wilayaId);
+  if (!entry) return { domicile: 0, stopDesk: 0 };
+  return {
+    domicile: Number(entry.tarifs?.livraison?.domicile) || 0,
+    stopDesk: Number(entry.tarifs?.livraison?.stop_desk) || 0,
+  };
+}
+
 function normalize(s: string): string {
   return s
     .toLowerCase()
@@ -171,105 +215,62 @@ function ecoHeaders(token: string) {
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
-async function fetchWilayas(url: string, token: string): Promise<EcoWilaya[]> {
-  const key = `${url}|${token.slice(-6)}`;
-  const c = _wCache.get(key);
-  if (c && Date.now() - c.ts < CACHE_TTL) return c.data;
-  const res = await fetch(`${url}/api/v1/get/wilayas`, { headers: ecoHeaders(token) });
-  const data: EcoWilaya[] = await res.json();
-  _wCache.set(key, { data, ts: Date.now() });
-  return data;
-}
-
-async function fetchCommunes(url: string, token: string): Promise<EcoCommune[]> {
-  const key = `${url}|${token.slice(-6)}`;
-  const c = _cCache.get(key);
-  if (c && Date.now() - c.ts < CACHE_TTL) return c.data;
-  const res = await fetch(`${url}/api/v1/get/communes`, { headers: ecoHeaders(token) });
-  const raw = await res.json();
-  const data: EcoCommune[] = Object.values(raw);
-  _cCache.set(key, { data, ts: Date.now() });
-  return data;
-}
-
-async function fetchTarifs(url: string, token: string): Promise<any[]> {
-  const key = `tarifs|${url}|${token.slice(-6)}`;
-  const c = _tCache.get(key);
-  if (c && Date.now() - c.ts < CACHE_TTL) return c.data;
-  try {
-    const res = await fetch(`${url}/api/v1/get/tarifs`, { headers: ecoHeaders(token) });
-    if (!res.ok) return [];
-    const raw = await res.json();
-    const arr: any[] = Array.isArray(raw) ? raw : (raw.data ? raw.data : Object.values(raw));
-    _tCache.set(key, { data: arr, ts: Date.now() });
-    return arr;
-  } catch {
-    return [];
-  }
-}
-
-/** Récupère les frais de livraison domicile + stop_desk pour une wilaya depuis l'API Ecotrack.
- *  Retourne null si l'API ne fournit pas l'info (fallback sur le tarif manuel). */
-export async function getWilayaDeliveryFees(
-  url: string,
-  token: string,
-  wilayaId: number,
-): Promise<{ domicile: number | null; stopDesk: number | null }> {
-  const tarifs = await fetchTarifs(url, token);
-  if (!tarifs.length) return { domicile: null, stopDesk: null };
-  const row = tarifs.find(
-    (t: any) => Number(t.wilaya_id ?? t.code_wilaya ?? t.id) === wilayaId,
-  );
-  if (!row) return { domicile: null, stopDesk: null };
-  const parseNum = (v: any) => (v != null && !isNaN(Number(v)) && Number(v) > 0 ? Number(v) : null);
-  const domicile = parseNum(row.tarif_domicile ?? row.domicile ?? row.prix_domicile ?? row.tarif ?? row.price);
-  const stopDesk = parseNum(row.tarif_stop_desk ?? row.tarif_bureau ?? row.stop_desk ?? row.prix_stop_desk ?? domicile);
-  return { domicile, stopDesk };
-}
-
-// ── Validate wilaya + commune against Ecotrack ───────────────────────────────
+// ── Validate wilaya + commune against local data ─────────────────────────────
 export async function validateLocation(
-  url: string,
-  token: string,
+  _url: string,
+  _token: string,
   inputWilaya: string,
   inputCommune: string,
 ): Promise<{ found: LocationMatch | null; suggestions: LocationMatch[] }> {
-  const [wilayas, communes] = await Promise.all([fetchWilayas(url, token), fetchCommunes(url, token)]);
+  const wilayas = getLocalWilayas();
   const normW = normalize(inputWilaya);
-  const normC = normalize(inputCommune);
+  const normWLatin = normalize(transliterateArabic(inputWilaya));
 
-  // 1. Match wilaya — check alias table first
+  // 1. Resolve wilaya_id — alias table first (handles Arabic/Daridja)
   let wilayaId: number | null = null;
   for (const [alias, id] of Object.entries(WILAYA_ALIASES)) {
-    const normAlias = normalize(alias);
-    if (normW === normAlias || normW.includes(normAlias) || normAlias.includes(normW)) {
-      wilayaId = id;
-      break;
+    const na = normalize(alias);
+    if (normW === na || normW.includes(na) || na.includes(normW)) { wilayaId = id; break; }
+  }
+  // Also try transliterated Arabic against alias table
+  if (!wilayaId && normWLatin !== normW) {
+    for (const [alias, id] of Object.entries(WILAYA_ALIASES)) {
+      const na = normalize(alias);
+      if (normWLatin === na || normWLatin.includes(na) || na.includes(normWLatin)) { wilayaId = id; break; }
     }
   }
-  // Fuzzy match against official wilaya names
+  // Fuzzy match on French wilaya names
   if (!wilayaId) {
     let best = Infinity;
     for (const w of wilayas) {
       const n = normalize(w.wilaya_name);
-      const d = levenshtein(normW, n);
-      const ratio = d / Math.max(normW.length, n.length, 1);
-      if (ratio < 0.35 && d < best) { best = d; wilayaId = w.wilaya_id; }
+      for (const inp of [normW, normWLatin]) {
+        const d = levenshtein(inp, n);
+        const ratio = d / Math.max(inp.length, n.length, 1);
+        if (ratio < 0.4 && d < best) { best = d; wilayaId = w.wilaya_id; }
+      }
     }
   }
 
   const matchedWilaya = wilayaId ? wilayas.find(w => w.wilaya_id === wilayaId) : null;
+  const pool = getLocalCommunes(wilayaId ?? undefined);
+  const allCommunes = wilayaId ? pool : getLocalCommunes();
 
-  // 2. Find commune
-  const pool = wilayaId ? communes.filter(c => c.wilaya_id === wilayaId) : communes;
+  const normC = normalize(inputCommune);
+  const normCLatin = normalize(transliterateArabic(inputCommune));
+
+  // Try exact / substring match on commune name
   let exactC: EcoCommune | null = null;
   let bestDist = Infinity;
   let bestC: EcoCommune | null = null;
 
   for (const c of pool) {
     const n = normalize(c.nom);
-    if (n === normC || n.includes(normC) || normC.includes(n)) { exactC = c; break; }
-    const d = levenshtein(normC, n);
+    for (const inp of [normC, normCLatin]) {
+      if (n === inp || n.includes(inp) || inp.includes(n)) { exactC = c; break; }
+    }
+    if (exactC) break;
+    const d = Math.min(levenshtein(normC, n), levenshtein(normCLatin, n));
     if (d < bestDist) { bestDist = d; bestC = c; }
   }
 
@@ -281,28 +282,28 @@ export async function validateLocation(
     hasStopDesk: c.has_stop_desk === 1,
   });
 
-  if (exactC && wilayaId) {
-    return { found: toMatch(exactC, wilayaId), suggestions: [] };
-  }
+  if (exactC && wilayaId) return { found: toMatch(exactC, wilayaId), suggestions: [] };
 
-  // Build suggestions (top 3 closest communes)
+  // Build suggestions — top 3 from wilaya pool + cross-wilaya search
   const suggestions: LocationMatch[] = [];
-  if (bestC && bestDist <= 6 && wilayaId) suggestions.push(toMatch(bestC, wilayaId));
-  // Also search across all wilayas for the commune name
-  const global = communes
+  if (bestC && bestDist <= 5 && wilayaId) suggestions.push(toMatch(bestC, wilayaId));
+
+  const global = allCommunes
     .filter(c => c.wilaya_id !== wilayaId)
-    .map(c => ({ c, d: levenshtein(normC, normalize(c.nom)) }))
+    .map(c => ({ c, d: Math.min(levenshtein(normC, normalize(c.nom)), levenshtein(normCLatin, normalize(c.nom))) }))
     .filter(x => x.d <= 4)
     .sort((a, b) => a.d - b.d)
     .slice(0, 2);
-  for (const { c } of global) suggestions.push(toMatch(c, c.wilaya_id));
+  for (const { c } of global) {
+    const wName = wilayas.find(w => w.wilaya_id === c.wilaya_id)?.wilaya_name ?? `Wilaya ${c.wilaya_id}`;
+    suggestions.push({ wilayaId: c.wilaya_id, wilayaName: wName, communeName: c.nom, codePostal: c.code_postal, hasStopDesk: c.has_stop_desk === 1 });
+  }
 
   return { found: null, suggestions: suggestions.slice(0, 3) };
 }
 
-export async function getStopDeskAlternatives(url: string, token: string, wilayaId: number): Promise<EcoCommune[]> {
-  const communes = await fetchCommunes(url, token);
-  return communes.filter(c => c.wilaya_id === wilayaId && c.has_stop_desk === 1);
+export async function getStopDeskAlternatives(_url: string, _token: string, wilayaId: number): Promise<EcoCommune[]> {
+  return getLocalCommunes(wilayaId).filter(c => c.has_stop_desk === 1);
 }
 
 // ── Create order on Ecotrack ─────────────────────────────────────────────────
@@ -394,6 +395,7 @@ export async function finalizeEcotrackOrder(
   ecoToken: string,
   ecoUrl: string,
   deliveryFee = 0,
+  autoShip = false,
 ): Promise<string> {
   const { orderData, orderId, wilayaId, communeName, wilayaName } = state;
 
@@ -442,15 +444,24 @@ export async function finalizeEcotrackOrder(
         // Status stays PENDING — confirmed only when customer replies "oui"
       },
     });
+
+    // Auto-ship if enabled: immediately validate the order on Ecotrack
+    if (autoShip) {
+      await shipEcotrackOrder(ecoUrl, ecoToken, result.tracking).catch(() => {});
+      await prisma.order.update({ where: { id: orderId }, data: { status: 'SHIPPED' } }).catch(() => {});
+    }
+
     const mode = deliveryType === 0 ? 'à domicile' : 'en Stop Desk';
     const deliveryLine = resolvedFee > 0 ? `\n🚚 Livraison : *${resolvedFee.toLocaleString('fr-DZ')} DA*` : '';
+    const autoShipLine = autoShip ? `\n🚀 Expédition automatique activée — votre colis est en route !` : '';
     return (
       `✅ *Commande enregistrée !*\n\n` +
       `📍 Livraison ${mode} à *${communeName}*, ${wilayaName}\n` +
       `📦 Tracking : *${result.tracking}*` +
       deliveryLine +
       `\n💰 Total : *${totalWithDelivery.toLocaleString('fr-DZ')} DA*\n\n` +
-      `Votre commande est en attente de confirmation. Nous vous contacterons bientôt. 🙏`
+      `Votre commande est en attente de confirmation. Nous vous contacterons bientôt. 🙏` +
+      autoShipLine
     );
   }
 
@@ -481,8 +492,10 @@ export async function handleEcotrackMessage(
   ecoToken: string,
   ecoUrl: string,
   deliveryFee = 0,
+  autoShip = false,
 ): Promise<EcoHandlerResult> {
   const lower = text.toLowerCase().trim();
+  const effectiveAutoShip = state.autoShip ?? autoShip;
 
   // ── Step: awaiting_location_confirm ────────────────────────────────────────
   if (state.step === 'awaiting_location_confirm') {
@@ -497,7 +510,7 @@ export async function handleEcotrackMessage(
       if (!s) {
         return { handled: true, responseText: '📍 Veuillez saisir à nouveau votre wilaya et commune.', newState: null };
       }
-      const fees = await getWilayaDeliveryFees(ecoUrl, ecoToken, s.wilayaId);
+      const fees = getWilayaDeliveryFees(s.wilayaId);
       const newState: EcotrackState = { ...state, step: 'awaiting_delivery_type', wilayaId: s.wilayaId, wilayaName: s.wilayaName, communeName: s.communeName, codePostal: s.codePostal, hasStopDesk: s.hasStopDesk, suggestions: undefined, tarifDomicile: fees.domicile, tarifStopDesk: fees.stopDesk };
       return { handled: true, responseText: buildDeliveryTypeMsg(s, fees.domicile, fees.stopDesk), newState };
     }
@@ -514,18 +527,18 @@ export async function handleEcotrackMessage(
     const isStop    = /stop.?desk|agence|bureau|point.?relais|nqta|أقرب|relais|^2$/.test(lower);
 
     if (isDomicile) {
-      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee);
+      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee, effectiveAutoShip);
       return { handled: true, responseText: msg, newState: null };
     }
     if (isStop) {
       if (state.hasStopDesk) {
-        const msg = await finalizeEcotrackOrder(state, 1, ecoToken, ecoUrl, deliveryFee);
+        const msg = await finalizeEcotrackOrder(state, 1, ecoToken, ecoUrl, deliveryFee, effectiveAutoShip);
         return { handled: true, responseText: msg, newState: null };
       }
       // No stop desk in this commune — find alternatives
       const alts = await getStopDeskAlternatives(ecoUrl, ecoToken, state.wilayaId);
       if (alts.length === 0) {
-        const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee);
+        const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee, effectiveAutoShip);
         return { handled: true, responseText: `❌ Pas de Stop Desk disponible à ${state.wilayaName}. Livraison à domicile automatiquement.\n\n${msg}`, newState: null };
       }
       const list = alts.slice(0, 5).map((a, i) => `${i + 1}. ${a.nom}`).join('\n');
@@ -551,7 +564,7 @@ export async function handleEcotrackMessage(
     const { found, suggestions } = await validateLocation(ecoUrl, ecoToken, inputWilaya, inputCommune);
 
     if (found) {
-      const fees = await getWilayaDeliveryFees(ecoUrl, ecoToken, found.wilayaId);
+      const fees = getWilayaDeliveryFees(found.wilayaId);
       const newState: EcotrackState = {
         ...state,
         step: 'awaiting_delivery_type',
@@ -602,7 +615,7 @@ export async function handleEcotrackMessage(
   if (state.step === 'awaiting_stopdesk_choice') {
     const alts = state.stopDeskAlternatives ?? [];
     if (/domicile|maison|chez.?moi/.test(lower)) {
-      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee);
+      const msg = await finalizeEcotrackOrder(state, 0, ecoToken, ecoUrl, deliveryFee, effectiveAutoShip);
       return { handled: true, responseText: msg, newState: null };
     }
     const numMatch = lower.match(/^(\d+)$/);
@@ -612,7 +625,7 @@ export async function handleEcotrackMessage(
     const chosen = chosenByNum ?? chosenByName;
     if (chosen) {
       const newState: EcotrackState = { ...state, communeName: chosen.nom, codePostal: chosen.codePostal };
-      const msg = await finalizeEcotrackOrder(newState, 1, ecoToken, ecoUrl, deliveryFee);
+      const msg = await finalizeEcotrackOrder(newState, 1, ecoToken, ecoUrl, deliveryFee, effectiveAutoShip);
       return { handled: true, responseText: msg, newState: null };
     }
     const list = alts.map((a, i) => `${i + 1}. ${a.nom}`).join('\n');
@@ -649,4 +662,31 @@ export function buildLocationSuggestionsMsg(suggestions: LocationMatch[], inputC
     `Vouliez-vous dire :\n${list}\n\n` +
     `Tapez le numéro correspondant ou "Non" pour ressaisir.`
   );
+}
+
+/** Fetch live order status from Ecotrack API */
+export async function getTrackingStatus(
+  ecoUrl: string,
+  ecoToken: string,
+  tracking: string,
+): Promise<{ status: string; statusLabel: string } | null> {
+  try {
+    const res = await fetch(`${ecoUrl}/api/v1/get/order?tracking=${encodeURIComponent(tracking)}`, {
+      headers: ecoHeaders(ecoToken),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Ecotrack may return status as number or string
+    const raw = data.etat ?? data.status ?? data.statut ?? data.state ?? null;
+    if (raw == null) return null;
+    const LABELS: Record<string | number, string> = {
+      0: '📋 En attente', 1: '✅ Confirmée', 2: '🔄 En traitement', 3: '📦 Prête',
+      4: '🚚 En livraison', 5: '✅ Livrée', 6: '↩️ Retournée', 7: '❌ Annulée',
+      'pending': '📋 En attente', 'confirmed': '✅ Confirmée', 'processing': '🔄 En traitement',
+      'shipped': '🚚 En livraison', 'delivered': '✅ Livrée', 'returned': '↩️ Retournée', 'cancelled': '❌ Annulée',
+    };
+    return { status: String(raw), statusLabel: LABELS[raw] ?? String(raw) };
+  } catch {
+    return null;
+  }
 }
