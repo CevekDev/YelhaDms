@@ -323,6 +323,13 @@ export async function POST(
     const history = await getRecentHistory(conversation.id);
     const isFirstMessage = history.length === 0;
 
+    // Check if this contact already has a PENDING order → block new orders
+    const contactPendingOrder = await prisma.order.findFirst({
+      where: { connectionId: connection.id, contactId, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, ecotrackTracking: true, trackingCode: true, createdAt: true, totalAmount: true },
+    });
+
     const systemPrompt = await buildTelegramSystemPrompt(
       connection,
       buildContactContextString(contactCtx),
@@ -330,6 +337,7 @@ export async function POST(
       (connection as any).deliveryFee ?? 0,
       (connection as any).deliveryPricingText ?? null,
       ecoEnabled,
+      contactPendingOrder ?? null,
     );
 
     const aiMessages = [
@@ -416,84 +424,101 @@ export async function POST(
           responseText = (extracted.textBefore + ' ' + extracted.textAfter).trim();
           try {
             const orderData = JSON.parse(jsonStr);
-            // If there's a recently cancelled order for this contact, update it instead of creating new
-            const recentCancelled = await prisma.order.findFirst({
-              where: {
-                connectionId: connection.id,
-                contactId,
-                status: 'CANCELLED',
-                updatedAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // within last 10 min
-              },
-              orderBy: { updatedAt: 'desc' },
-            });
-            let newOrderId: string;
-            if (recentCancelled) {
-              newOrderId = await updateOrCreateOrder(connection, contactId, contactName, orderData, recentCancelled.id);
-            } else {
-              newOrderId = await saveOrderFromBot(connection, contactId, contactName, orderData);
-            }
 
-            // ── Ecotrack: validate address + start delivery flow ─────────
-            if (ecoEnabled && newOrderId) {
-              try {
-                const ecoToken = decrypt(ecoRawToken!);
-                const { found, suggestions } = await validateLocation(ecoUrl!, ecoToken, orderData.wilaya || '', orderData.commune || '');
-                if (found) {
-                  const fees = getWilayaDeliveryFees(found.wilayaId);
-                  const newState: EcotrackState = {
-                    step: 'awaiting_delivery_type',
-                    orderId: newOrderId,
-                    orderData,
-                    wilayaId: found.wilayaId,
-                    wilayaName: found.wilayaName,
-                    communeName: found.communeName,
-                    codePostal: found.codePostal,
-                    hasStopDesk: found.hasStopDesk,
-                    tarifDomicile: fees.domicile,
-                    tarifStopDesk: fees.stopDesk,
-                    autoShip: !!(connection as any).ecotrackAutoShip,
-                  };
-                  const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
-                  await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
-                  const domPrix = fees.domicile != null ? ` — *${fees.domicile.toLocaleString('fr-DZ')} DA*` : '';
-                  const stopPrix = fees.stopDesk != null ? ` — *${fees.stopDesk.toLocaleString('fr-DZ')} DA*` : '';
-                  responseText = `✅ Commande enregistrée !\n\n📍 Livraison à *${found.communeName}*, ${found.wilayaName}.\n\nComment souhaitez-vous recevoir votre colis ?\n1️⃣ Livraison à *domicile*${domPrix}\n${found.hasStopDesk ? `2️⃣ Retrait en *Stop Desk* (agence)${stopPrix}` : '2️⃣ Stop Desk _(non disponible dans cette commune)_'}`;
-                } else if (suggestions.length > 0) {
-                  const newState: EcotrackState = {
-                    step: 'awaiting_location_confirm',
-                    orderId: newOrderId,
-                    orderData,
-                    wilayaId: suggestions[0].wilayaId,
-                    wilayaName: suggestions[0].wilayaName,
-                    communeName: suggestions[0].communeName,
-                    codePostal: suggestions[0].codePostal,
-                    hasStopDesk: suggestions[0].hasStopDesk,
-                    suggestions,
-                  };
-                  const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
-                  await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
-                  responseText = buildLocationSuggestionsMsg(suggestions, orderData.commune || '', orderData.wilaya || '');
-                } else {
-                  // No match at all — ask user to retype address manually
-                  const newState: EcotrackState = {
-                    step: 'awaiting_address_input',
-                    orderId: newOrderId,
-                    orderData,
-                    wilayaId: 0,
-                    wilayaName: '',
-                    communeName: '',
-                    codePostal: '',
-                    hasStopDesk: false,
-                    retryCount: 0,
-                  };
-                  const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
-                  await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
-                  responseText = `📍 Je n'ai pas pu localiser *${orderData.wilaya || ''}* / *${orderData.commune || ''}*.\n\nVeuillez saisir votre wilaya et commune dans ce format :\n*Wilaya / Commune*\nExemple : *Alger / Bab El Oued*`;
-                }
-              } catch (ecoErr) {
-                console.error('[Ecotrack] Location validation error', ecoErr);
+            // ── Guard: block new order if contact already has a PENDING one ─────
+            const alreadyPending = await prisma.order.findFirst({
+              where: { connectionId: connection.id, contactId, status: 'PENDING' },
+              orderBy: { createdAt: 'desc' },
+              select: { id: true, ecotrackTracking: true, trackingCode: true, totalAmount: true },
+            });
+            if (alreadyPending) {
+              // Block new order: client already has a pending one
+              const tracking = alreadyPending.ecotrackTracking || alreadyPending.trackingCode;
+              responseText = `⚠️ Vous avez déjà une commande en attente (*#${alreadyPending.id.slice(-6).toUpperCase()}*).\n` +
+                (tracking ? `📦 Tracking : *${tracking}*\n` : '') +
+                `\nVeuillez attendre que votre commande soit livrée ou annulée avant d'en passer une nouvelle.`;
+            } else {
+              // No pending order — create a new one
+              // If there's a recently cancelled order for this contact, update it instead of creating new
+              const recentCancelled = await prisma.order.findFirst({
+                where: {
+                  connectionId: connection.id,
+                  contactId,
+                  status: 'CANCELLED',
+                  updatedAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // within last 10 min
+                },
+                orderBy: { updatedAt: 'desc' },
+              });
+              let newOrderId: string;
+              if (recentCancelled) {
+                newOrderId = await updateOrCreateOrder(connection, contactId, contactName, orderData, recentCancelled.id);
+              } else {
+                newOrderId = await saveOrderFromBot(connection, contactId, contactName, orderData);
               }
-            }
+
+              // ── Ecotrack: validate address + start delivery flow (products only) ─
+              const isServicesMode = (connection as any).commerceType === 'services';
+              if (ecoEnabled && newOrderId && !isServicesMode) {
+                try {
+                  const ecoToken = decrypt(ecoRawToken!);
+                  const { found, suggestions } = await validateLocation(ecoUrl!, ecoToken, orderData.wilaya || '', orderData.commune || '');
+                  if (found) {
+                    const fees = getWilayaDeliveryFees(found.wilayaId);
+                    const newState: EcotrackState = {
+                      step: 'awaiting_delivery_type',
+                      orderId: newOrderId,
+                      orderData,
+                      wilayaId: found.wilayaId,
+                      wilayaName: found.wilayaName,
+                      communeName: found.communeName,
+                      codePostal: found.codePostal,
+                      hasStopDesk: found.hasStopDesk,
+                      tarifDomicile: fees.domicile,
+                      tarifStopDesk: fees.stopDesk,
+                      autoShip: !!(connection as any).ecotrackAutoShip,
+                    };
+                    const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
+                    await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
+                    const domPrix = fees.domicile != null ? ` — *${fees.domicile.toLocaleString('fr-DZ')} DA*` : '';
+                    const stopPrix = fees.stopDesk != null ? ` — *${fees.stopDesk.toLocaleString('fr-DZ')} DA*` : '';
+                    responseText = `✅ Commande enregistrée !\n\n📍 Livraison à *${found.communeName}*, ${found.wilayaName}.\n\nComment souhaitez-vous recevoir votre colis ?\n1️⃣ Livraison à *domicile*${domPrix}\n${found.hasStopDesk ? `2️⃣ Retrait en *Stop Desk* (agence)${stopPrix}` : '2️⃣ Stop Desk _(non disponible dans cette commune)_'}`;
+                  } else if (suggestions.length > 0) {
+                    const newState: EcotrackState = {
+                      step: 'awaiting_location_confirm',
+                      orderId: newOrderId,
+                      orderData,
+                      wilayaId: suggestions[0].wilayaId,
+                      wilayaName: suggestions[0].wilayaName,
+                      communeName: suggestions[0].communeName,
+                      codePostal: suggestions[0].codePostal,
+                      hasStopDesk: suggestions[0].hasStopDesk,
+                      suggestions,
+                    };
+                    const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
+                    await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
+                    responseText = buildLocationSuggestionsMsg(suggestions, orderData.commune || '', orderData.wilaya || '');
+                  } else {
+                    // No match at all — ask user to retype address manually
+                    const newState: EcotrackState = {
+                      step: 'awaiting_address_input',
+                      orderId: newOrderId,
+                      orderData,
+                      wilayaId: 0,
+                      wilayaName: '',
+                      communeName: '',
+                      codePostal: '',
+                      hasStopDesk: false,
+                      retryCount: 0,
+                    };
+                    const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
+                    await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
+                    responseText = `📍 Je n'ai pas pu localiser *${orderData.wilaya || ''}* / *${orderData.commune || ''}*.\n\nVeuillez saisir votre wilaya et commune dans ce format :\n*Wilaya / Commune*\nExemple : *Alger / Bab El Oued*`;
+                  }
+                } catch (ecoErr) {
+                  console.error('[Ecotrack] Location validation error', ecoErr);
+                }
+              }
+            } // end else (no pending order)
           } catch (e) {
             console.error('[Telegram] Order parse error', e, 'JSON:', jsonStr);
           }
@@ -664,7 +689,15 @@ async function sendTelegramMessage(token: string, chatId: number, text: string) 
   });
 }
 
-async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean, deliveryFee = 0, deliveryPricingText?: string | null, ecotrackConnected = false): Promise<string> {
+async function buildTelegramSystemPrompt(
+  connection: any,
+  contactContext: string,
+  isFirstMessage: boolean,
+  deliveryFee = 0,
+  deliveryPricingText?: string | null,
+  ecotrackConnected = false,
+  pendingOrderInfo?: { id: string; ecotrackTracking: string | null; trackingCode: string | null; createdAt: Date; totalAmount: number | null } | null,
+): Promise<string> {
   // Belt + suspenders: check connection fields directly in case ecotrackConnected param was wrong
   const isEcoConnected = ecotrackConnected || !!(connection.ecotrackToken && connection.ecotrackUrl);
   console.log(`[buildPrompt] isEcoConnected=${isEcoConnected} token=${!!(connection as any).ecotrackToken} url=${!!(connection as any).ecotrackUrl}`);
@@ -727,7 +760,25 @@ ${deliveryPricingText && deliveryPricingText.trim() ? `TARIFICATION LIVRAISON PA
 ${deliveryPricingText.trim()}
 - Utilise ce tableau pour calculer les frais de livraison selon la wilaya du client.
 - Si la wilaya n'est pas listée, utilise le tarif "Autres" ou la valeur par défaut.
-- Inclus le frais de livraison dans le récapitulatif de commande.` : ''}`;
+- Inclus le frais de livraison dans le récapitulatif de commande.` : ''}
+
+${pendingOrderInfo ? `
+══════════════════════════════════════
+⛔ COMMANDE EN ATTENTE — RÈGLE ABSOLUE
+══════════════════════════════════════
+Ce client a DÉJÀ une commande en cours de traitement :
+- ID : #${pendingOrderInfo.id.slice(-6).toUpperCase()}
+- Tracking : ${(pendingOrderInfo.ecotrackTracking || pendingOrderInfo.trackingCode) ?? 'N/A'}
+- Date : ${new Date(pendingOrderInfo.createdAt).toLocaleDateString('fr-DZ')}
+- Montant : ${pendingOrderInfo.totalAmount ? `${pendingOrderInfo.totalAmount.toLocaleString('fr-DZ')} DA` : 'N/A'}
+
+RÈGLES ABSOLUES — NE PAS DÉROGER :
+1. ❌ NE PAS prendre de nouvelle commande
+2. ❌ NE JAMAIS générer [COMMANDE_CONFIRMEE] ni [COMMANDE_MODIFIEE]
+3. Si le client demande où est sa commande / son statut / son tracking → génère [ORDER_STATUS_QUERY]
+4. Si le client essaie de passer une nouvelle commande → informe-le poliment qu'il a déjà une commande en attente et qu'il doit attendre qu'elle soit livrée ou annulée
+5. Reste aimable et propose de l'aider à suivre sa commande existante
+` : ''}`;
 }
 
 async function saveOrderFromBot(connection: any, contactId: string, contactName: string | null, data: any): Promise<string> {

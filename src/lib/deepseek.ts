@@ -74,53 +74,7 @@ Si le client envoie une simple salutation ("Bonjour", "Salam", "Cc ça va", "Wac
 ══════════════════════════════════════
 PROCESSUS DE COMMANDE
 ══════════════════════════════════════
-Quand le client souhaite commander un produit :
-
-ÉTAPE 1 — Demande les informations en UN seul message :
-"Pour finaliser votre commande, envoyez-moi en UN seul message :
-Prénom Nom / Numéro de téléphone / Wilaya et Commune"
-
-ÉTAPE 2 — Parse le message du client et extrait :
-- Prénom et Nom
-- Numéro de téléphone (10 chiffres)
-- Wilaya et Commune
-
-RÈGLES :
-- Si le client ne précise pas la quantité → mettre 1 par défaut
-- Si le client commande plusieurs produits → liste-les tous
-
-ÉTAPE 3 — Affiche un récapitulatif OBLIGATOIRE :
-"📦 Récapitulatif de votre commande :
-• Produit : [nom] x[quantité] — [prix] DA
-• Sous-total : [sous-total] DA
-• Livraison : [frais de livraison] DA
-• Total : [total avec livraison] DA
-• Nom : [prénom nom]
-• Téléphone : [numéro]
-• Wilaya : [wilaya] — [commune]
-
-Confirmez-vous cette commande ? (Oui/Non)"
-
-Note : Le total dans le tag JSON doit inclure les frais de livraison.
-
-ÉTAPE 4 — Si le client confirme :
-- Remercie-le chaleureusement
-- Dis-lui que la commande sera traitée rapidement
-- Demande s'il veut autre chose
-- Génère OBLIGATOIREMENT le tag suivant (JSON sur une seule ligne, à la fin de ton message) :
-[COMMANDE_CONFIRMEE:{"prenom":"...","nom":"...","telephone":"...","wilaya":"...","commune":"...","produits":[{"nom":"...","quantite":1,"prix":0}],"total":0}]
-
-ÉTAPE 5 — Si le client dit Non/Annuler après avoir vu le récapitulatif :
-- Génère OBLIGATOIREMENT le tag [COMMANDE_ANNULEE] sur une ligne séparée à la fin de ton message
-- Annule poliment et propose de recommencer ou de choisir autre chose
-
-ÉTAPE 5b — Si le client veut MODIFIER sa commande (changer produit, quantité, adresse...) :
-- Ne génère PAS [COMMANDE_ANNULEE]
-- Collecte les nouvelles informations (reprends depuis l'étape 1 si nécessaire)
-- Affiche un nouveau récapitulatif et demande confirmation
-- Si le client confirme la version modifiée, génère OBLIGATOIREMENT :
-[COMMANDE_MODIFIEE:{"prenom":"...","nom":"...","telephone":"...","wilaya":"...","commune":"...","produits":[{"nom":"...","quantite":1,"prix":0}],"total":0}]
-Ce tag met à jour la commande existante sans en créer une nouvelle.
+{orderProcessInstructions}
 
 ══════════════════════════════════════
 STATUT DE COMMANDE
@@ -198,6 +152,96 @@ export async function callDeepSeek(
   return content;
 }
 
+// ── Order process instructions per commerce type ────────────────────────────
+const ORDER_PROCESS_PRODUCTS = `Quand le client souhaite commander un produit :
+
+ÉTAPE 1 — Demande les informations en UN seul message :
+"Pour finaliser votre commande, envoyez-moi en UN seul message :
+Prénom Nom / Numéro de téléphone / Wilaya et Commune"
+
+ÉTAPE 2 — Parse le message du client et extrait :
+- Prénom et Nom
+- Numéro de téléphone (10 chiffres)
+- Wilaya et Commune
+
+RÈGLES :
+- Si le client ne précise pas la quantité → mettre 1 par défaut
+- Si le client commande plusieurs produits → liste-les tous
+
+ÉTAPE 3 — Affiche un récapitulatif OBLIGATOIRE :
+"📦 Récapitulatif de votre commande :
+• Produit : [nom] x[quantité] — [prix] DA
+• Sous-total : [sous-total] DA
+• Livraison : [frais de livraison] DA
+• Total : [total avec livraison] DA
+• Nom : [prénom nom]
+• Téléphone : [numéro]
+• Wilaya : [wilaya] — [commune]
+
+Confirmez-vous cette commande ? (Oui/Non)"
+
+Note : Le total dans le tag JSON doit inclure les frais de livraison.
+
+ÉTAPE 4 — Si le client confirme :
+- Remercie-le chaleureusement
+- Dis-lui que la commande sera traitée rapidement
+- Demande s'il veut autre chose
+- Génère OBLIGATOIREMENT le tag suivant (JSON sur une seule ligne, à la fin de ton message) :
+[COMMANDE_CONFIRMEE:{"prenom":"...","nom":"...","telephone":"...","wilaya":"...","commune":"...","produits":[{"nom":"...","quantite":1,"prix":0}],"total":0}]
+
+ÉTAPE 5 — Si le client dit Non/Annuler après avoir vu le récapitulatif :
+- Génère OBLIGATOIREMENT le tag [COMMANDE_ANNULEE] sur une ligne séparée à la fin de ton message
+- Annule poliment et propose de recommencer ou de choisir autre chose
+
+ÉTAPE 5b — Si le client veut MODIFIER sa commande (changer produit, quantité, adresse...) :
+- Ne génère PAS [COMMANDE_ANNULEE]
+- Collecte les nouvelles informations (reprends depuis l'étape 1 si nécessaire)
+- Affiche un nouveau récapitulatif et demande confirmation
+- Si le client confirme la version modifiée, génère OBLIGATOIREMENT :
+[COMMANDE_MODIFIEE:{"prenom":"...","nom":"...","telephone":"...","wilaya":"...","commune":"...","produits":[{"nom":"...","quantite":1,"prix":0}],"total":0}]
+Ce tag met à jour la commande existante sans en créer une nouvelle.`;
+
+const ORDER_PROCESS_SERVICES = `Quand le client souhaite réserver un service :
+
+⚠️ MODE SERVICES : NE PAS demander de wilaya, commune ni adresse de livraison.
+
+ÉTAPE 1 — Demande les informations en UN seul message :
+"Pour finaliser votre réservation, envoyez-moi en UN seul message :
+Prénom Nom / Numéro de téléphone"
+
+ÉTAPE 2 — Parse le message du client et extrait :
+- Prénom et Nom
+- Numéro de téléphone (10 chiffres)
+
+RÈGLES :
+- Si le client ne précise pas la quantité/durée → mettre 1 par défaut
+- Pas de livraison physique, pas d'adresse
+
+ÉTAPE 3 — Affiche un récapitulatif OBLIGATOIRE :
+"📋 Récapitulatif de votre réservation :
+• Service : [nom du service] x[quantité]
+• Total : [total] DA
+• Nom : [prénom nom]
+• Téléphone : [numéro]
+
+Confirmez-vous cette réservation ? (Oui/Non)"
+
+ÉTAPE 4 — Si le client confirme :
+- Remercie-le chaleureusement
+- Dis-lui qu'on le contactera pour confirmer le rendez-vous
+- Génère OBLIGATOIREMENT le tag suivant (JSON sur une seule ligne, à la fin de ton message) :
+[COMMANDE_CONFIRMEE:{"prenom":"...","nom":"...","telephone":"...","wilaya":"","commune":"","produits":[{"nom":"...","quantite":1,"prix":0}],"total":0}]
+
+ÉTAPE 5 — Si le client dit Non/Annuler :
+- Génère OBLIGATOIREMENT le tag [COMMANDE_ANNULEE] sur une ligne séparée
+- Annule poliment et propose de recommencer
+
+ÉTAPE 5b — Si le client veut MODIFIER sa réservation :
+- Ne génère PAS [COMMANDE_ANNULEE]
+- Collecte les nouvelles informations et affiche un nouveau récapitulatif
+- Si confirmé, génère OBLIGATOIREMENT :
+[COMMANDE_MODIFIEE:{"prenom":"...","nom":"...","telephone":"...","wilaya":"","commune":"","produits":[{"nom":"...","quantite":1,"prix":0}],"total":0}]`;
+
 const PERSONALITY_PRESETS: Record<string, string> = {
   professional:
     'Sois formel, courtois et précis. Utilise un langage professionnel et soigné. Évite le langage familier.',
@@ -269,20 +313,28 @@ export function buildSystemPrompt(params: {
     }
   }
 
+  // ── Commerce type ────────────────────────────────────────────────────────
+  const resolvedCommerceType = commerceType || 'products';
+  const resolvedCommerceInstructions = commerceTypeInstructions || COMMERCE_TYPE_INSTRUCTIONS[resolvedCommerceType] || COMMERCE_TYPE_INSTRUCTIONS.products;
+
   // ── Langue ──────────────────────────────────────────────────────────────
   const languageRules = `Détecte la langue du client et réponds TOUJOURS dans cette même langue. Si arabizi → réponds en arabe script arabe. Langues : arabe, darija, français, anglais.`;
 
   // ── Frais de livraison ──────────────────────────────────────────────────
-  const deliveryFeeInstructions = ecotrackConnected
-    ? `Les frais de livraison varient selon la wilaya du client et sont calculés automatiquement par notre transporteur (Ecotrack). NE mentionne PAS de montant fixe pour la livraison. Dans le récapitulatif, indique simplement "Livraison : selon wilaya (confirmé par le transporteur)" et n'inclus PAS les frais dans le total du tag JSON (mets uniquement le sous-total produits).`
-    : deliveryFee && deliveryFee > 0
-      ? `Les frais de livraison sont de ${deliveryFee} DA pour toutes les commandes. Inclus-les OBLIGATOIREMENT dans le récapitulatif et dans le total du tag JSON.`
-      : `Aucun frais de livraison configuré pour le moment (livraison gratuite ou à préciser).`;
-
-  const resolvedCommerceType = commerceType || 'products';
-  const resolvedCommerceInstructions = commerceTypeInstructions || COMMERCE_TYPE_INSTRUCTIONS[resolvedCommerceType] || COMMERCE_TYPE_INSTRUCTIONS.products;
+  const deliveryFeeInstructions = resolvedCommerceType === 'services'
+    ? `MODE SERVICES : Aucune livraison physique. Ne mentionne jamais de frais de livraison.`
+    : ecotrackConnected
+      ? `Les frais de livraison varient selon la wilaya du client et sont calculés automatiquement par notre transporteur (Ecotrack). NE mentionne PAS de montant fixe pour la livraison. Dans le récapitulatif, indique simplement "Livraison : selon wilaya (confirmé par le transporteur)" et n'inclus PAS les frais dans le total du tag JSON (mets uniquement le sous-total produits).`
+      : deliveryFee && deliveryFee > 0
+        ? `Les frais de livraison sont de ${deliveryFee} DA pour toutes les commandes. Inclus-les OBLIGATOIREMENT dans le récapitulatif et dans le total du tag JSON.`
+        : `Aucun frais de livraison configuré pour le moment (livraison gratuite ou à préciser).`;
 
   const contextSection = contactContext || '';
+
+  // Order process instructions
+  const orderProcessInstructions = resolvedCommerceType === 'services'
+    ? ORDER_PROCESS_SERVICES
+    : ORDER_PROCESS_PRODUCTS;
 
   let prompt = globalPrompt
     .replace(/{botName}/g, botName)
@@ -294,7 +346,8 @@ export function buildSystemPrompt(params: {
     .replace('{commerceType}', resolvedCommerceType)
     .replace('{commerceTypeInstructions}', resolvedCommerceInstructions)
     .replace('{languageRules}', languageRules)
-    .replace('{deliveryFeeInstructions}', deliveryFeeInstructions);
+    .replace('{deliveryFeeInstructions}', deliveryFeeInstructions)
+    .replace('{orderProcessInstructions}', orderProcessInstructions);
 
   // Quand Ecotrack est actif : modifier le template ÉTAPE 3 pour éviter que l'IA
   // remplisse "0 DA" ou "gratuit" sur la ligne livraison
