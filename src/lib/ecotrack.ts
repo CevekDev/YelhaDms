@@ -24,6 +24,9 @@ export interface EcotrackState {
   retryCount?: number;
   suggestions?: Array<{ wilayaId: number; wilayaName: string; communeName: string; codePostal: string; hasStopDesk: boolean }>;
   stopDeskAlternatives?: Array<{ nom: string; codePostal: string }>;
+  /** Tarifs récupérés depuis l'API Ecotrack pour la wilaya du client */
+  tarifDomicile?: number | null;
+  tarifStopDesk?: number | null;
 }
 
 export interface LocationMatch {
@@ -37,6 +40,7 @@ export interface LocationMatch {
 // ── In-process cache (survives warm serverless invocations) ─────────────────
 const _wCache = new Map<string, { data: EcoWilaya[]; ts: number }>();
 const _cCache = new Map<string, { data: EcoCommune[]; ts: number }>();
+const _tCache = new Map<string, { data: any[]; ts: number }>();
 
 // ── Daridja / Arabic → wilaya_id mapping ────────────────────────────────────
 const WILAYA_ALIASES: Record<string, number> = {
@@ -186,6 +190,41 @@ async function fetchCommunes(url: string, token: string): Promise<EcoCommune[]> 
   const data: EcoCommune[] = Object.values(raw);
   _cCache.set(key, { data, ts: Date.now() });
   return data;
+}
+
+async function fetchTarifs(url: string, token: string): Promise<any[]> {
+  const key = `tarifs|${url}|${token.slice(-6)}`;
+  const c = _tCache.get(key);
+  if (c && Date.now() - c.ts < CACHE_TTL) return c.data;
+  try {
+    const res = await fetch(`${url}/api/v1/get/tarifs`, { headers: ecoHeaders(token) });
+    if (!res.ok) return [];
+    const raw = await res.json();
+    const arr: any[] = Array.isArray(raw) ? raw : (raw.data ? raw.data : Object.values(raw));
+    _tCache.set(key, { data: arr, ts: Date.now() });
+    return arr;
+  } catch {
+    return [];
+  }
+}
+
+/** Récupère les frais de livraison domicile + stop_desk pour une wilaya depuis l'API Ecotrack.
+ *  Retourne null si l'API ne fournit pas l'info (fallback sur le tarif manuel). */
+export async function getWilayaDeliveryFees(
+  url: string,
+  token: string,
+  wilayaId: number,
+): Promise<{ domicile: number | null; stopDesk: number | null }> {
+  const tarifs = await fetchTarifs(url, token);
+  if (!tarifs.length) return { domicile: null, stopDesk: null };
+  const row = tarifs.find(
+    (t: any) => Number(t.wilaya_id ?? t.code_wilaya ?? t.id) === wilayaId,
+  );
+  if (!row) return { domicile: null, stopDesk: null };
+  const parseNum = (v: any) => (v != null && !isNaN(Number(v)) && Number(v) > 0 ? Number(v) : null);
+  const domicile = parseNum(row.tarif_domicile ?? row.domicile ?? row.prix_domicile ?? row.tarif ?? row.price);
+  const stopDesk = parseNum(row.tarif_stop_desk ?? row.tarif_bureau ?? row.stop_desk ?? row.prix_stop_desk ?? domicile);
+  return { domicile, stopDesk };
 }
 
 // ── Validate wilaya + commune against Ecotrack ───────────────────────────────
@@ -357,6 +396,12 @@ export async function finalizeEcotrackOrder(
   deliveryFee = 0,
 ): Promise<string> {
   const { orderData, orderId, wilayaId, communeName, wilayaName } = state;
+
+  // Priorité : tarif Ecotrack (par wilaya) > tarif manuel configuré dans les réglages
+  const ecoTarif = deliveryType === 0
+    ? (state.tarifDomicile ?? null)
+    : (state.tarifStopDesk ?? state.tarifDomicile ?? null);
+  const resolvedFee = ecoTarif ?? deliveryFee;
   const nom = [orderData.prenom, orderData.nom].filter(Boolean).join(' ') || 'Client';
   const phone = (orderData.telephone || '').replace(/\D/g, '').slice(-10);
   const adresse = orderData.adresse || `${orderData.commune || ''} ${orderData.wilaya || ''}`.trim() || communeName;
@@ -368,7 +413,8 @@ export async function finalizeEcotrackOrder(
   const productTotal = dbOrder?.totalAmount ?? 0;
 
   // Total the courier collects from the customer = products + delivery fee (COD amount)
-  const totalWithDelivery = productTotal + (deliveryFee || 0);
+  // resolvedFee = tarif Ecotrack par wilaya (si dispo) sinon tarif manuel
+  const totalWithDelivery = productTotal + (resolvedFee || 0);
 
   const result = await createEcotrackOrder(ecoUrl, ecoToken, {
     nom_client: nom,
@@ -390,17 +436,17 @@ export async function finalizeEcotrackOrder(
         ecotrackTracking: result.tracking,
         deliveryType,
         codeWilaya: wilayaId,
-        deliveryFee: deliveryFee || 0,
+        deliveryFee: resolvedFee || 0,
         totalAmount: totalWithDelivery,
         notes: `Wilaya: ${wilayaName} — Commune: ${communeName}`,
         // Status stays PENDING — confirmed only when customer replies "oui"
       },
     });
     const mode = deliveryType === 0 ? 'à domicile' : 'en Stop Desk';
-    const deliveryLine = deliveryFee > 0 ? `\n📦 Livraison : *${deliveryFee.toLocaleString('fr-DZ')} DA*` : '';
+    const deliveryLine = resolvedFee > 0 ? `\n🚚 Livraison : *${resolvedFee.toLocaleString('fr-DZ')} DA*` : '';
     return (
       `✅ *Commande enregistrée !*\n\n` +
-      `🚚 Livraison ${mode} à *${communeName}*, ${wilayaName}\n` +
+      `📍 Livraison ${mode} à *${communeName}*, ${wilayaName}\n` +
       `📦 Tracking : *${result.tracking}*` +
       deliveryLine +
       `\n💰 Total : *${totalWithDelivery.toLocaleString('fr-DZ')} DA*\n\n` +
@@ -414,7 +460,7 @@ export async function finalizeEcotrackOrder(
     data: {
       deliveryType,
       codeWilaya: wilayaId,
-      deliveryFee: deliveryFee || 0,
+      deliveryFee: resolvedFee || 0,
       totalAmount: totalWithDelivery,
       notes: `Wilaya: ${wilayaName} — Commune: ${communeName}`,
     },
@@ -451,8 +497,9 @@ export async function handleEcotrackMessage(
       if (!s) {
         return { handled: true, responseText: '📍 Veuillez saisir à nouveau votre wilaya et commune.', newState: null };
       }
-      const newState: EcotrackState = { ...state, step: 'awaiting_delivery_type', wilayaId: s.wilayaId, wilayaName: s.wilayaName, communeName: s.communeName, codePostal: s.codePostal, hasStopDesk: s.hasStopDesk, suggestions: undefined };
-      return { handled: true, responseText: buildDeliveryTypeMsg(s), newState };
+      const fees = await getWilayaDeliveryFees(ecoUrl, ecoToken, s.wilayaId);
+      const newState: EcotrackState = { ...state, step: 'awaiting_delivery_type', wilayaId: s.wilayaId, wilayaName: s.wilayaName, communeName: s.communeName, codePostal: s.codePostal, hasStopDesk: s.hasStopDesk, suggestions: undefined, tarifDomicile: fees.domicile, tarifStopDesk: fees.stopDesk };
+      return { handled: true, responseText: buildDeliveryTypeMsg(s, fees.domicile, fees.stopDesk), newState };
     }
     if (isNo) {
       return { handled: true, responseText: '📍 D\'accord, veuillez saisir à nouveau votre wilaya et commune de livraison.', newState: null };
@@ -489,7 +536,7 @@ export async function handleEcotrackMessage(
         newState,
       };
     }
-    return { handled: true, responseText: buildDeliveryTypeMsg(state), newState: state };
+    return { handled: true, responseText: buildDeliveryTypeMsg(state, state.tarifDomicile, state.tarifStopDesk), newState: state };
   }
 
   // ── Step: awaiting_address_input ─────────────────────────────────────────
@@ -504,6 +551,7 @@ export async function handleEcotrackMessage(
     const { found, suggestions } = await validateLocation(ecoUrl, ecoToken, inputWilaya, inputCommune);
 
     if (found) {
+      const fees = await getWilayaDeliveryFees(ecoUrl, ecoToken, found.wilayaId);
       const newState: EcotrackState = {
         ...state,
         step: 'awaiting_delivery_type',
@@ -514,8 +562,10 @@ export async function handleEcotrackMessage(
         hasStopDesk: found.hasStopDesk,
         suggestions: undefined,
         retryCount: 0,
+        tarifDomicile: fees.domicile,
+        tarifStopDesk: fees.stopDesk,
       };
-      return { handled: true, responseText: buildDeliveryTypeMsg(found), newState };
+      return { handled: true, responseText: buildDeliveryTypeMsg(found, fees.domicile, fees.stopDesk), newState };
     }
 
     if (suggestions.length > 0) {
@@ -572,12 +622,20 @@ export async function handleEcotrackMessage(
   return { handled: false };
 }
 
-function buildDeliveryTypeMsg(loc: { communeName: string; wilayaName: string; hasStopDesk: boolean }): string {
-  const stopLine = loc.hasStopDesk ? '2️⃣ Retrait en *Stop Desk* (agence)' : '2️⃣ Stop Desk _(non disponible dans votre commune)_';
+function buildDeliveryTypeMsg(
+  loc: { communeName: string; wilayaName: string; hasStopDesk: boolean },
+  tarifDomicile?: number | null,
+  tarifStopDesk?: number | null,
+): string {
+  const domPrix = tarifDomicile != null ? ` — *${tarifDomicile.toLocaleString('fr-DZ')} DA*` : '';
+  const stopPrix = tarifStopDesk != null ? ` — *${tarifStopDesk.toLocaleString('fr-DZ')} DA*` : '';
+  const stopLine = loc.hasStopDesk
+    ? `2️⃣ Retrait en *Stop Desk* (agence)${stopPrix}`
+    : '2️⃣ Stop Desk _(non disponible dans votre commune)_';
   return (
     `📍 Livraison à *${loc.communeName}*, ${loc.wilayaName}.\n\n` +
     `Comment souhaitez-vous recevoir votre commande ?\n` +
-    `1️⃣ Livraison à *domicile*\n${stopLine}`
+    `1️⃣ Livraison à *domicile*${domPrix}\n${stopLine}`
   );
 }
 

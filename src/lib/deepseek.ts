@@ -241,6 +241,7 @@ export function buildSystemPrompt(params: {
   commerceType?: string;
   commerceTypeInstructions?: string;
   deliveryFee?: number;
+  ecotrackConnected?: boolean;
 }): string {
   const {
     botName,
@@ -255,6 +256,7 @@ export function buildSystemPrompt(params: {
     commerceType = 'products',
     commerceTypeInstructions,
     deliveryFee = 0,
+    ecotrackConnected = false,
   } = params;
 
   // ── Personnalité ─────────────────────────────────────────────────────────
@@ -271,9 +273,11 @@ export function buildSystemPrompt(params: {
   const languageRules = `Détecte la langue du client et réponds TOUJOURS dans cette même langue. Si arabizi → réponds en arabe script arabe. Langues : arabe, darija, français, anglais.`;
 
   // ── Frais de livraison ──────────────────────────────────────────────────
-  const deliveryFeeInstructions = deliveryFee && deliveryFee > 0
-    ? `Les frais de livraison sont de ${deliveryFee} DA pour toutes les commandes. Inclus-les OBLIGATOIREMENT dans le récapitulatif et dans le total du tag JSON.`
-    : `Aucun frais de livraison configuré pour le moment (livraison gratuite ou à préciser).`;
+  const deliveryFeeInstructions = ecotrackConnected
+    ? `Les frais de livraison varient selon la wilaya du client et sont calculés automatiquement par notre transporteur (Ecotrack). NE mentionne PAS de montant fixe pour la livraison. Dans le récapitulatif, indique simplement "Livraison : selon wilaya (confirmé par le transporteur)" et n'inclus PAS les frais dans le total du tag JSON (mets uniquement le sous-total produits).`
+    : deliveryFee && deliveryFee > 0
+      ? `Les frais de livraison sont de ${deliveryFee} DA pour toutes les commandes. Inclus-les OBLIGATOIREMENT dans le récapitulatif et dans le total du tag JSON.`
+      : `Aucun frais de livraison configuré pour le moment (livraison gratuite ou à préciser).`;
 
   const resolvedCommerceType = commerceType || 'products';
   const resolvedCommerceInstructions = commerceTypeInstructions || COMMERCE_TYPE_INSTRUCTIONS[resolvedCommerceType] || COMMERCE_TYPE_INSTRUCTIONS.products;

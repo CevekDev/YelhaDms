@@ -19,6 +19,7 @@ import {
   handleEcotrackMessage,
   buildLocationSuggestionsMsg,
   finalizeEcotrackOrder,
+  getWilayaDeliveryFees,
   type EcotrackState,
 } from '@/lib/ecotrack';
 
@@ -325,6 +326,7 @@ export async function POST(
       isFirstMessage,
       (connection as any).deliveryFee ?? 0,
       (connection as any).deliveryPricingText ?? null,
+      ecoEnabled,
     );
 
     const aiMessages = [
@@ -440,6 +442,7 @@ export async function POST(
                 const ecoToken = decrypt(ecoRawToken!);
                 const { found, suggestions } = await validateLocation(ecoUrl!, ecoToken, orderData.wilaya || '', orderData.commune || '');
                 if (found) {
+                  const fees = await getWilayaDeliveryFees(ecoUrl!, ecoToken, found.wilayaId);
                   const newState: EcotrackState = {
                     step: 'awaiting_delivery_type',
                     orderId: newOrderId,
@@ -449,10 +452,14 @@ export async function POST(
                     communeName: found.communeName,
                     codePostal: found.codePostal,
                     hasStopDesk: found.hasStopDesk,
+                    tarifDomicile: fees.domicile,
+                    tarifStopDesk: fees.stopDesk,
                   };
                   const currMeta = (contactCtx?.metadata as Record<string, any> | null) ?? {};
                   await upsertContactContext(connection.id, contactId, { contactName, metadata: { ...currMeta, ecotrackState: newState } });
-                  responseText = `✅ Commande enregistrée !\n\n📍 Livraison à *${found.communeName}*, ${found.wilayaName}.\n\nComment souhaitez-vous recevoir votre colis ?\n1️⃣ Livraison à *domicile*\n${found.hasStopDesk ? '2️⃣ Retrait en *Stop Desk* (agence)' : '2️⃣ Stop Desk _(non disponible dans cette commune)_'}`;
+                  const domPrix = fees.domicile != null ? ` — *${fees.domicile.toLocaleString('fr-DZ')} DA*` : '';
+                  const stopPrix = fees.stopDesk != null ? ` — *${fees.stopDesk.toLocaleString('fr-DZ')} DA*` : '';
+                  responseText = `✅ Commande enregistrée !\n\n📍 Livraison à *${found.communeName}*, ${found.wilayaName}.\n\nComment souhaitez-vous recevoir votre colis ?\n1️⃣ Livraison à *domicile*${domPrix}\n${found.hasStopDesk ? `2️⃣ Retrait en *Stop Desk* (agence)${stopPrix}` : '2️⃣ Stop Desk _(non disponible dans cette commune)_'}`;
                 } else if (suggestions.length > 0) {
                   const newState: EcotrackState = {
                     step: 'awaiting_location_confirm',
@@ -603,7 +610,7 @@ async function sendTelegramMessage(token: string, chatId: number, text: string) 
   });
 }
 
-async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean, deliveryFee = 0, deliveryPricingText?: string | null): Promise<string> {
+async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean, deliveryFee = 0, deliveryPricingText?: string | null, ecotrackConnected = false): Promise<string> {
   const predefinedStr = connection.predefinedMessages
     .map((m: any) => `Mots-clés: ${m.keywords.join(', ')}\nRéponse: ${m.response}`)
     .join('\n---\n');
@@ -636,6 +643,7 @@ async function buildTelegramSystemPrompt(connection: any, contactContext: string
     isFirstMessage,
     commerceType: connection.commerceType || 'products',
     deliveryFee,
+    ecotrackConnected,
   });
 
   // Build per-product detail map for the description section
