@@ -651,6 +651,8 @@ async function sendTelegramMessage(token: string, chatId: number, text: string) 
 }
 
 async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean, deliveryFee = 0, deliveryPricingText?: string | null, ecotrackConnected = false): Promise<string> {
+  // Belt + suspenders: check connection fields directly in case ecotrackConnected param was wrong
+  const isEcoConnected = ecotrackConnected || !!(connection.ecotrackToken && connection.ecotrackUrl);
   const predefinedStr = connection.predefinedMessages
     .map((m: any) => `Mots-clés: ${m.keywords.join(', ')}\nRéponse: ${m.response}`)
     .join('\n---\n');
@@ -683,7 +685,7 @@ async function buildTelegramSystemPrompt(connection: any, contactContext: string
     isFirstMessage,
     commerceType: connection.commerceType || 'products',
     deliveryFee,
-    ecotrackConnected,
+    ecotrackConnected: isEcoConnected,
   });
 
   // Build per-product detail map for the description section

@@ -296,6 +296,24 @@ export function buildSystemPrompt(params: {
     .replace('{languageRules}', languageRules)
     .replace('{deliveryFeeInstructions}', deliveryFeeInstructions);
 
+  // Quand Ecotrack est actif : modifier le template ÉTAPE 3 pour éviter que l'IA
+  // remplisse "0 DA" ou "gratuit" sur la ligne livraison
+  if (ecotrackConnected) {
+    prompt = prompt
+      .replace(
+        '• Livraison : [frais de livraison] DA',
+        '• Livraison : calculée selon votre wilaya 📍'
+      )
+      .replace(
+        '• Total : [total avec livraison] DA',
+        '• Total produits : [sous-total produits] DA (livraison confirmée après validation adresse)'
+      )
+      .replace(
+        'Note : Le total dans le tag JSON doit inclure les frais de livraison.',
+        'Note : Le total dans le tag JSON = sous-total produits UNIQUEMENT (la livraison est gérée par le transporteur).'
+      );
+  }
+
   prompt += contextSection;
 
   // ── Bloc ORDRES DU PROPRIÉTAIRE — toujours en tête ───────────────────────
