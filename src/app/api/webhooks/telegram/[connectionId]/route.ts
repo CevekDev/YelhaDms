@@ -123,6 +123,7 @@ export async function POST(
   const ecoRawToken = (connection as any).ecotrackToken as string | null;
   const ecoUrl = (connection as any).ecotrackUrl as string | null;
   const ecoEnabled = !!(ecoRawToken && ecoUrl);
+  console.log(`[Telegram][${params.connectionId}] ecoEnabled=${ecoEnabled} ecoUrl=${ecoUrl} hasToken=${!!ecoRawToken}`);
 
   // Handle /start command
   if (text === '/start') {

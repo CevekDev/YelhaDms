@@ -318,6 +318,18 @@ export function buildSystemPrompt(params: {
     ownerOrders.push(`INSTRUCTIONS PERSONNALISÉES :\n${customInstructions.trim()}`);
   }
 
+  // 4. Livraison Ecotrack — ordre absolu si actif
+  if (ecotrackConnected) {
+    ownerOrders.push(
+      `LIVRAISON ECOTRACK — ORDRE ABSOLU :\n` +
+      `Les frais de livraison sont calculés automatiquement par notre transporteur selon la wilaya du client.\n` +
+      `INTERDIT d'écrire un montant fixe (ni 0 DA, ni "gratuit", ni aucun chiffre).\n` +
+      `Dans le récapitulatif de commande, la ligne livraison DOIT être :\n` +
+      `• Livraison : calculée selon votre wilaya 📍\n` +
+      `Le total dans le tag JSON [COMMANDE_CONFIRMEE] = sous-total produits UNIQUEMENT (sans livraison).`
+    );
+  }
+
   const ordersText = ownerOrders.length > 0
     ? ownerOrders.map((o, i) => `${i + 1}. ${o}`).join('\n\n')
     : '(Aucune instruction spécifique — applique les règles générales ci-dessous.)';
