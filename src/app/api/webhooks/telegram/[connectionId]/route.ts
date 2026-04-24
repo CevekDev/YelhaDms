@@ -395,17 +395,14 @@ export async function POST(
     }
     // ── Commande modifiée → mettre à jour la commande existante ──────────
     else if (rawResponse.includes('[COMMANDE_MODIFIEE:')) {
-      const tagStart = rawResponse.indexOf('[COMMANDE_MODIFIEE:');
-      const jsonStart = tagStart + '[COMMANDE_MODIFIEE:'.length;
-      const tagEnd = rawResponse.lastIndexOf('}]');
-      if (tagEnd > jsonStart) {
-        const jsonStr = rawResponse.slice(jsonStart, tagEnd + 1);
-        responseText = (rawResponse.slice(0, tagStart) + rawResponse.slice(tagEnd + 2)).trim();
+      const extracted = extractTag(rawResponse, '[COMMANDE_MODIFIEE:');
+      if (extracted) {
+        responseText = (extracted.textBefore + ' ' + extracted.textAfter).trim();
         try {
-          const orderData = JSON.parse(jsonStr);
+          const orderData = JSON.parse(extracted.json);
           await updateOrCreateOrder(connection, contactId, contactName, orderData);
         } catch (e) {
-          console.error('[Telegram] Order modify error', e, 'JSON:', jsonStr);
+          console.error('[Telegram] Order modify error', e, 'JSON:', extracted.json);
         }
       } else {
         responseText = rawResponse;
@@ -413,13 +410,10 @@ export async function POST(
     }
     // ── Commande confirmée → créer ou réactiver une commande existante ───
     else {
-      const tagStart = rawResponse.indexOf('[COMMANDE_CONFIRMEE:');
-      if (tagStart !== -1) {
-        const jsonStart = tagStart + '[COMMANDE_CONFIRMEE:'.length;
-        const tagEnd = rawResponse.lastIndexOf('}]');
-        if (tagEnd > jsonStart) {
-          const jsonStr = rawResponse.slice(jsonStart, tagEnd + 1);
-          responseText = (rawResponse.slice(0, tagStart) + rawResponse.slice(tagEnd + 2)).trim();
+      const extracted = extractTag(rawResponse, '[COMMANDE_CONFIRMEE:');
+      if (extracted) {
+          const jsonStr = extracted.json;
+          responseText = (extracted.textBefore + ' ' + extracted.textAfter).trim();
           try {
             const orderData = JSON.parse(jsonStr);
             // If there's a recently cancelled order for this contact, update it instead of creating new
@@ -503,9 +497,6 @@ export async function POST(
           } catch (e) {
             console.error('[Telegram] Order parse error', e, 'JSON:', jsonStr);
           }
-        } else {
-          responseText = rawResponse;
-        }
       } else if (!rawResponse.startsWith('[HORS_SUJET]')) {
         responseText = rawResponse;
       }
@@ -642,6 +633,29 @@ export async function POST(
   return NextResponse.json({ ok: true });
 }
 
+/** Robustly extract [TAG:{...}] content using bracket counting.
+ *  lastIndexOf('}]') fails when the JSON contains nested arrays like produits:[{...}] */
+function extractTag(response: string, tag: string): { json: string; textBefore: string; textAfter: string } | null {
+  const tagStart = response.indexOf(tag);
+  if (tagStart === -1) return null;
+  const jsonStart = tagStart + tag.length;
+  let depth = 0;
+  for (let i = tagStart; i < response.length; i++) {
+    if (response[i] === '[') depth++;
+    else if (response[i] === ']') {
+      depth--;
+      if (depth === 0) {
+        return {
+          json: response.slice(jsonStart, i),
+          textBefore: response.slice(0, tagStart).trim(),
+          textAfter: response.slice(i + 1).trim(),
+        };
+      }
+    }
+  }
+  return null;
+}
+
 async function sendTelegramMessage(token: string, chatId: number, text: string) {
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
@@ -653,6 +667,7 @@ async function sendTelegramMessage(token: string, chatId: number, text: string) 
 async function buildTelegramSystemPrompt(connection: any, contactContext: string, isFirstMessage: boolean, deliveryFee = 0, deliveryPricingText?: string | null, ecotrackConnected = false): Promise<string> {
   // Belt + suspenders: check connection fields directly in case ecotrackConnected param was wrong
   const isEcoConnected = ecotrackConnected || !!(connection.ecotrackToken && connection.ecotrackUrl);
+  console.log(`[buildPrompt] isEcoConnected=${isEcoConnected} token=${!!(connection as any).ecotrackToken} url=${!!(connection as any).ecotrackUrl}`);
   const predefinedStr = connection.predefinedMessages
     .map((m: any) => `Mots-clés: ${m.keywords.join(', ')}\nRéponse: ${m.response}`)
     .join('\n---\n');

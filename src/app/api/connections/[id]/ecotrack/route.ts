@@ -5,6 +5,18 @@ import { prisma } from '@/lib/prisma';
 import { encrypt, decrypt } from '@/lib/encryption';
 import { validateEcotrackToken } from '@/lib/ecotrack';
 
+async function injectSettingsReset(connectionId: string) {
+  const conversations = await prisma.conversation.findMany({
+    where: { connectionId },
+    select: { id: true },
+  });
+  for (const conv of conversations) {
+    await prisma.message.create({
+      data: { conversationId: conv.id, direction: 'system', content: 'settings_reset', type: 'settings_reset' },
+    }).catch(() => {});
+  }
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -49,6 +61,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ecotrackAutoShip: !!autoShip,
     },
   });
+
+  // Inject settings_reset marker into all active conversations for this connection
+  // so the bot forgets old "livraison gratuite" messages immediately
+  await injectSettingsReset(params.id);
 
   return NextResponse.json({ ok: true });
 }
